@@ -1,5 +1,6 @@
 package com.goldenmoonsolutions.myshoppinglist
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -13,15 +14,22 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -131,14 +139,59 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
                         items = viewModel.items,
                         key = { it.id }
                     ) { item ->
-                        Box(modifier = Modifier.animateItem()) {
-                            ShoppingListItem(
-                                item = item,
-                                onCheckedChange = { isChecked -> viewModel.toggleItem(item, isChecked) },
-                                onDelete = { viewModel.removeItem(item) }
-                            )
+                        // 1. Create the state for this specific item's swipe
+                        val dismissState = rememberSwipeToDismissBoxState(
+                            confirmValueChange = { dismissValue ->
+                                // Only trigger if swiped significantly to the end/start
+                                if (dismissValue != SwipeToDismissBoxValue.Settled) {
+                                    viewModel.removeItem(item)
+                                    true
+                                } else {
+                                    false
+                                }
+                            },
+                            // This adjusts how far you have to swipe (0.5 = 50% of the width)
+                            positionalThreshold = { distance -> distance * 0.5f }
+                        )
+
+                        // 2. Wrap the item in the SwipeToDismissBox
+                        SwipeToDismissBox(
+                            state = dismissState,
+                            enableDismissFromStartToEnd = true,
+                            enableDismissFromEndToStart = true,
+                            backgroundContent = {
+                                // Background only shows when swiping
+                                val alignment = when (dismissState.dismissDirection) {
+                                    SwipeToDismissBoxValue.StartToEnd -> Alignment.CenterStart
+                                    SwipeToDismissBoxValue.EndToStart -> Alignment.CenterEnd
+                                    else -> Alignment.Center
+                                }
+
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(Color.Red.copy(alpha = 0.8f)) // Slight transparency
+                                        .padding(horizontal = 20.dp),
+                                    contentAlignment = alignment
+                                ) {
+                                    Icon(Icons.Default.Delete, contentDescription = null, tint = Color.White)
+                                }
+                            }
+                        ) {
+                            // --- THE FIX FOR THE TRANSPARENCY ---
+                            Surface(
+                                modifier = Modifier.fillMaxWidth(),
+                                color = MaterialTheme.colorScheme.surface // Forces a solid background
+                            ) {
+                                ShoppingListItem(
+                                    item = item,
+                                    onCheckedChange = { viewModel.toggleItem(item, it) },
+                                    onDelete = { viewModel.removeItem(item) }
+                                )
+                            }
                         }
-                        HorizontalDivider() // Adds a nice line between items
+
+                        HorizontalDivider()
                     }
                 }
             }
