@@ -16,6 +16,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -27,6 +28,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberSwipeToDismissBoxState
@@ -40,6 +42,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import com.goldenmoonsolutions.myshoppinglist.domain.ShoppingItem
 import com.goldenmoonsolutions.myshoppinglist.ui.ShoppingListItem
 import com.goldenmoonsolutions.myshoppinglist.viewmodel.ShoppingListViewModel
 
@@ -49,6 +52,7 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
     // Local state for the text fields (Java dev: think of these as transient form data)
     var itemName by remember { mutableStateOf("") }
     var itemQuantity by remember { mutableStateOf("1") }
+    var itemToDelete by remember { mutableStateOf<ShoppingItem?>(null) }
 
     Scaffold(
         topBar = {
@@ -144,8 +148,8 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
                             confirmValueChange = { dismissValue ->
                                 // Only trigger if swiped significantly to the end/start
                                 if (dismissValue != SwipeToDismissBoxValue.Settled) {
-                                    viewModel.removeItem(item)
-                                    true
+                                    itemToDelete = item
+                                    false
                                 } else {
                                     false
                                 }
@@ -186,7 +190,7 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
                                 ShoppingListItem(
                                     item = item,
                                     onCheckedChange = { viewModel.toggleItem(item, it) },
-                                    onDelete = { viewModel.removeItem(item) }
+                                    onDelete = { itemToDelete = item }
                                 )
                             }
                         }
@@ -195,6 +199,29 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
                     }
                 }
             }
+        }
+
+        itemToDelete?.let { item ->
+            AlertDialog(
+                onDismissRequest = { itemToDelete = null }, // Hide dialog if user taps outside
+                title = { Text("Delete Item") },
+                text = { Text("Are you sure you want to remove '${item.name}' from your list?") },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            viewModel.removeItem(item)
+                            itemToDelete = null // Hide dialog
+                        }
+                    ) {
+                        Text("Delete", color = Color.Red)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { itemToDelete = null }) {
+                        Text("Cancel")
+                    }
+                }
+            )
         }
     }
 }
