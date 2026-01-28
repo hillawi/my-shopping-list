@@ -131,11 +131,13 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
                         items = viewModel.items,
                         key = { it.id }
                     ) { item ->
-                        ShoppingListItem(
-                            item = item,
-                            onCheckedChange = { isChecked -> viewModel.toggleItem(item, isChecked) },
-                            onDelete = { viewModel.removeItem(item) }
-                        )
+                        Box(modifier = Modifier.animateItem()) {
+                            ShoppingListItem(
+                                item = item,
+                                onCheckedChange = { isChecked -> viewModel.toggleItem(item, isChecked) },
+                                onDelete = { viewModel.removeItem(item) }
+                            )
+                        }
                         HorizontalDivider() // Adds a nice line between items
                     }
                 }
