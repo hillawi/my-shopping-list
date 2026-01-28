@@ -66,7 +66,10 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
 
             // --- THE LIST ---
             LazyColumn {
-                items(items = viewModel.items, key = { it.id }) { item ->
+                items(
+                    items = viewModel.items,
+                    key = { it.id }
+                ) { item ->
                     ShoppingListItem(
                         item = item,
                         onCheckedChange = { isChecked -> viewModel.toggleItem(item, isChecked) },
