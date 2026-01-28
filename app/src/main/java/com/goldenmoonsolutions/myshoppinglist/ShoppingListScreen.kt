@@ -1,18 +1,27 @@
 package com.goldenmoonsolutions.myshoppinglist
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -20,6 +29,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.goldenmoonsolutions.myshoppinglist.ui.ShoppingListItem
 import com.goldenmoonsolutions.myshoppinglist.viewmodel.ShoppingListViewModel
@@ -32,49 +43,101 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
     var itemQuantity by remember { mutableStateOf("1") }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("My Shopping List") }) }
+        topBar = {
+            TopAppBar(
+                title = { Text("My Shopping List") },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            )
+        }
     ) { paddingValues ->
-        Column(modifier = Modifier.padding(paddingValues)) {
-
-            // --- INPUT SECTION ---
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues) // Essential to keep content visible!
+                .padding(16.dp)
+        ) {
+            // --- 1. INPUT SECTION ---
             Row(
-                modifier = Modifier.fillMaxWidth().padding(8.dp),
+                modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                TextField(
+                // Name Input
+                OutlinedTextField(
                     value = itemName,
                     onValueChange = { itemName = it },
                     modifier = Modifier.weight(1f),
-                    placeholder = { Text("Item name") }
+                    label = { Text("Item") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
                 )
-                TextField(
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                // Quantity Input
+                OutlinedTextField(
                     value = itemQuantity,
                     onValueChange = { itemQuantity = it },
-                    modifier = Modifier.width(70.dp).padding(horizontal = 4.dp),
-                    placeholder = { Text("Qty") }
+                    modifier = Modifier.width(80.dp),
+                    label = { Text("Qty") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(
+                        onDone = {
+                            if (itemName.isNotBlank()) {
+                                viewModel.addItem(itemName, itemQuantity.toIntOrNull() ?: 1)
+                                itemName = ""
+                                itemQuantity = "1"
+                            }
+                        }
+                    )
                 )
-                Button(onClick = {
-                    if (itemName.isNotBlank()) {
-                        viewModel.addItem(itemName, itemQuantity.toIntOrNull() ?: 1)
-                        itemName = "" // Clear input
-                        itemQuantity = "1" // Reset quantity
-                    }
-                }) {
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                // Add Button
+                Button(
+                    onClick = {
+                        if (itemName.isNotBlank()) {
+                            viewModel.addItem(itemName, itemQuantity.toIntOrNull() ?: 1)
+                            itemName = ""
+                            itemQuantity = "1"
+                        }
+                    },
+                    modifier = Modifier.height(56.dp) // Match height of TextFields
+                ) {
                     Text("Add")
                 }
             }
 
-            // --- THE LIST ---
-            LazyColumn {
-                items(
-                    items = viewModel.items,
-                    key = { it.id }
-                ) { item ->
-                    ShoppingListItem(
-                        item = item,
-                        onCheckedChange = { isChecked -> viewModel.toggleItem(item, isChecked) },
-                        onDelete = { viewModel.removeItem(item) }
-                    )
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // --- 2. THE LIST ---
+            // If the list is empty, show a helpful message
+            if (viewModel.items.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("Your list is empty!", style = MaterialTheme.typography.bodyLarge, color = Color.Gray)
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    items(
+                        items = viewModel.items,
+                        key = { it.id }
+                    ) { item ->
+                        ShoppingListItem(
+                            item = item,
+                            onCheckedChange = { isChecked -> viewModel.toggleItem(item, isChecked) },
+                            onDelete = { viewModel.removeItem(item) }
+                        )
+                        HorizontalDivider() // Adds a nice line between items
+                    }
                 }
             }
         }
