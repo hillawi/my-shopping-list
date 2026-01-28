@@ -1,11 +1,12 @@
 package com.goldenmoonsolutions.myshoppinglist.viewmodel
 
+import androidx.compose.runtime.mutableStateListOf
 import androidx.lifecycle.ViewModel
 import com.goldenmoonsolutions.myshoppinglist.domain.ShoppingItem
 
 // ViewModel is kept in memory by the Android OS until the screen is permanently closed.
 class ShoppingListViewModel : ViewModel() {
-    private val _items = mutableListOf<ShoppingItem>()
+    private val _items = mutableStateListOf<ShoppingItem>()
     val items: List<ShoppingItem> get() = _items
 
     fun addItem(name: String, quantity: Int) {
