@@ -2,7 +2,6 @@ package com.goldenmoonsolutions.myshoppinglist.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.goldenmoonsolutions.myshoppinglist.domain.ShoppingCategory
 import com.goldenmoonsolutions.myshoppinglist.domain.ShoppingItem
 import io.github.jan.supabase.annotations.SupabaseExperimental
 import io.github.jan.supabase.createSupabaseClient
@@ -15,7 +14,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 
@@ -33,12 +31,6 @@ class ShoppingListViewModel : ViewModel() {
 
     private val _items = MutableStateFlow<List<ShoppingItem>>(emptyList())
     val items: StateFlow<List<ShoppingItem>> = _items.asStateFlow()
-
-    val groupedItems = items.map { list ->
-        list.distinctBy { it.id }
-            .groupBy { it.category }
-            .toSortedMap(compareBy { ShoppingCategory.fromString(it).order })
-    }
 
     init {
         observeItems()

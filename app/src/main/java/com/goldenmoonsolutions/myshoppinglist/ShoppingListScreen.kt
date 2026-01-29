@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -133,7 +134,13 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
                     DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                         ShoppingCategory.entries.forEach { cat ->
                             DropdownMenuItem(
-                                text = { Text(cat.label) },
+                                text = {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(cat.icon, contentDescription = null, modifier = Modifier.size(18.dp))
+                                        Spacer(Modifier.width(12.dp))
+                                        Text(cat.label)
+                                    }
+                                },
                                 onClick = {
                                     selectedCategory = cat
                                     expanded = false
@@ -176,13 +183,26 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
                             stickyHeader {
                                 Surface(
                                     modifier = Modifier.fillMaxWidth(),
-                                    color = MaterialTheme.colorScheme.secondaryContainer
+                                    color = MaterialTheme.colorScheme.secondaryContainer,
+                                    shadowElevation = 2.dp
                                 ) {
-                                    Text(
-                                        text = category.label,
+                                    Row(
                                         modifier = Modifier.padding(8.dp),
-                                        style = MaterialTheme.typography.labelLarge
-                                    )
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            imageVector = category.icon,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            text = category.label,
+                                            style = MaterialTheme.typography.labelLarge,
+                                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                                        )
+                                    }
                                 }
                             }
 
