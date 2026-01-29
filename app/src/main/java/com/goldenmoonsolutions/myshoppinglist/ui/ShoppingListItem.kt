@@ -29,7 +29,7 @@ fun ShoppingListItem (
     ) {
         // 1. The checkbox
         Checkbox(
-            checked = item.isChecked,
+            checked = item.isPurchased,
             onCheckedChange = onCheckedChange
         )
 

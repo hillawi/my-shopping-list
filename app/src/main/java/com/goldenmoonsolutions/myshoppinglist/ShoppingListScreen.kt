@@ -18,10 +18,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -42,6 +45,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.goldenmoonsolutions.myshoppinglist.domain.ShoppingCategory
 import com.goldenmoonsolutions.myshoppinglist.domain.ShoppingItem
 import com.goldenmoonsolutions.myshoppinglist.ui.ShoppingListItem
 import com.goldenmoonsolutions.myshoppinglist.viewmodel.ShoppingListViewModel
@@ -53,6 +58,13 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
     var itemName by remember { mutableStateOf("") }
     var itemQuantity by remember { mutableStateOf("1") }
     var itemToDelete by remember { mutableStateOf<ShoppingItem?>(null) }
+    var expanded by remember { mutableStateOf(false) }
+    var selectedCategory by remember { mutableStateOf(ShoppingCategory.GENERAL) }
+
+    val items by viewModel.items.collectAsStateWithLifecycle()
+
+    val groupedItems = items.groupBy { it.categoryInfo }
+        .toSortedMap(compareBy { it.order })
 
     Scaffold(
         topBar = {
@@ -109,6 +121,28 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
 
                 Spacer(modifier = Modifier.width(8.dp))
 
+                Box(modifier = Modifier.weight(0.8f)) {
+                    OutlinedCard(
+                        onClick = { expanded = true },
+                        modifier = Modifier.fillMaxWidth().height(56.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                            Text(selectedCategory.label)
+                        }
+                    }
+                    DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                        ShoppingCategory.entries.forEach { cat ->
+                            DropdownMenuItem(
+                                text = { Text(cat.label) },
+                                onClick = {
+                                    selectedCategory = cat
+                                    expanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+
                 // Add Button
                 Button(
                     onClick = {
@@ -128,7 +162,7 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
 
             // --- 2. THE LIST ---
             // If the list is empty, show a helpful message
-            if (viewModel.items.isEmpty()) {
+            if (items.isEmpty()) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
@@ -136,66 +170,78 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
                     Text("Your list is empty!", style = MaterialTheme.typography.bodyLarge, color = Color.Gray)
                 }
             } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    items(
-                        items = viewModel.items,
-                        key = { it.id }
-                    ) { item ->
-                        // 1. Create the state for this specific item's swipe
-                        val dismissState = rememberSwipeToDismissBoxState(
-                            confirmValueChange = { dismissValue ->
-                                // Only trigger if swiped significantly to the end/start
-                                if (dismissValue != SwipeToDismissBoxValue.Settled) {
-                                    itemToDelete = item
-                                    false
-                                } else {
-                                    false
-                                }
-                            },
-                            // This adjusts how far you have to swipe (0.5 = 50% of the width)
-                            positionalThreshold = { distance -> distance * 0.5f }
-                        )
-
-                        // 2. Wrap the item in the SwipeToDismissBox
-                        SwipeToDismissBox(
-                            state = dismissState,
-                            enableDismissFromStartToEnd = true,
-                            enableDismissFromEndToStart = true,
-                            backgroundContent = {
-                                // Background only shows when swiping
-                                val alignment = when (dismissState.dismissDirection) {
-                                    SwipeToDismissBoxValue.StartToEnd -> Alignment.CenterStart
-                                    SwipeToDismissBoxValue.EndToStart -> Alignment.CenterEnd
-                                    else -> Alignment.Center
-                                }
-
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .background(Color.Red.copy(alpha = 0.8f)) // Slight transparency
-                                        .padding(horizontal = 20.dp),
-                                    contentAlignment = alignment
+                LazyColumn(modifier = Modifier.fillMaxSize()) {
+                        groupedItems.forEach { (category, items) ->
+                            // 1. Category Header
+                            stickyHeader {
+                                Surface(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    color = MaterialTheme.colorScheme.secondaryContainer
                                 ) {
-                                    Icon(Icons.Default.Delete, contentDescription = null, tint = Color.White)
+                                    Text(
+                                        text = category.label,
+                                        modifier = Modifier.padding(8.dp),
+                                        style = MaterialTheme.typography.labelLarge
+                                    )
                                 }
                             }
-                        ) {
-                            // --- THE FIX FOR THE TRANSPARENCY ---
-                            Surface(
-                                modifier = Modifier.fillMaxWidth(),
-                                color = MaterialTheme.colorScheme.surface // Forces a solid background
-                            ) {
-                                ShoppingListItem(
-                                    item = item,
-                                    onCheckedChange = { viewModel.toggleItem(item, it) },
-                                    onDelete = { itemToDelete = item }
-                                )
-                            }
-                        }
 
-                        HorizontalDivider()
+                            // 2. Items in this category
+                            items(items = items, key = { item -> "${item.category}_${item.id}" }) { item ->
+                                // 1. Create the state for this specific item's swipe
+                                val dismissState = rememberSwipeToDismissBoxState(
+                                    confirmValueChange = { dismissValue ->
+                                        // Only trigger if swiped significantly to the end/start
+                                        if (dismissValue != SwipeToDismissBoxValue.Settled) {
+                                            itemToDelete = item
+                                            false
+                                        } else {
+                                            false
+                                        }
+                                    },
+                                    // This adjusts how far you have to swipe (0.5 = 50% of the width)
+                                    positionalThreshold = { distance -> distance * 0.5f }
+                                )
+
+                                // 2. Wrap the item in the SwipeToDismissBox
+                                SwipeToDismissBox(
+                                    state = dismissState,
+                                    enableDismissFromStartToEnd = true,
+                                    enableDismissFromEndToStart = true,
+                                    backgroundContent = {
+                                        // Background only shows when swiping
+                                        val alignment = when (dismissState.dismissDirection) {
+                                            SwipeToDismissBoxValue.StartToEnd -> Alignment.CenterStart
+                                            SwipeToDismissBoxValue.EndToStart -> Alignment.CenterEnd
+                                            else -> Alignment.Center
+                                        }
+
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .background(Color.Red.copy(alpha = 0.8f)) // Slight transparency
+                                                .padding(horizontal = 20.dp),
+                                            contentAlignment = alignment
+                                        ) {
+                                            Icon(Icons.Default.Delete, contentDescription = null, tint = Color.White)
+                                        }
+                                    }
+                                ) {
+                                    // --- THE FIX FOR THE TRANSPARENCY ---
+                                    Surface(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        color = MaterialTheme.colorScheme.surface // Forces a solid background
+                                    ) {
+                                        ShoppingListItem(
+                                            item = item,
+                                            onCheckedChange = { viewModel.toggleItem(item, it) },
+                                            onDelete = { itemToDelete = item }
+                                        )
+                                    }
+                                }
+
+                                HorizontalDivider()
+                            }
                     }
                 }
             }
