@@ -37,6 +37,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -55,7 +56,8 @@ import com.goldenmoonsolutions.myshoppinglist.viewmodel.ShoppingListViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
-    // Local state for the text fields (Java dev: think of these as transient form data)
+    val activeItems by viewModel.activeItems.collectAsState()
+    val catalog by viewModel.catalog.collectAsState()
     var itemName by remember { mutableStateOf("") }
     var itemQuantity by remember { mutableStateOf("1") }
     var itemToDelete by remember { mutableStateOf<ShoppingItem?>(null) }
@@ -63,9 +65,6 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
     var selectedCategory by remember { mutableStateOf(ShoppingCategory.GENERAL) }
 
     val items by viewModel.items.collectAsStateWithLifecycle()
-
-    val groupedItems = items.groupBy { it.categoryInfo }
-        .toSortedMap(compareBy { it.order })
 
     Scaffold(
         topBar = {
@@ -81,7 +80,7 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues) // Essential to keep content visible!
+                .padding(paddingValues)
                 .padding(16.dp)
         ) {
             // --- 1. INPUT SECTION ---
@@ -94,7 +93,7 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
                     value = itemName,
                     onValueChange = { itemName = it },
                     modifier = Modifier.weight(1f),
-                    label = { Text("Item") },
+                    label = { Text("Item Name") },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
                 )
@@ -112,7 +111,7 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
                     keyboardActions = KeyboardActions(
                         onDone = {
                             if (itemName.isNotBlank()) {
-                                viewModel.addItem(itemName, itemQuantity.toIntOrNull() ?: 1)
+                                viewModel.addOrUpdateItem(itemName, selectedCategory)
                                 itemName = ""
                                 itemQuantity = "1"
                             }
@@ -154,7 +153,7 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
                 Button(
                     onClick = {
                         if (itemName.isNotBlank()) {
-                            viewModel.addItem(itemName, itemQuantity.toIntOrNull() ?: 1)
+                            viewModel.addOrUpdateItem(itemName, selectedCategory)
                             itemName = ""
                             itemQuantity = "1"
                         }
@@ -178,33 +177,9 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
                 }
             } else {
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
-                        groupedItems.forEach { (category, items) ->
+                    activeItems.forEach { (category, items) ->
                             // 1. Category Header
-                            stickyHeader {
-                                Surface(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    color = MaterialTheme.colorScheme.secondaryContainer,
-                                    shadowElevation = 2.dp
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(8.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Icon(
-                                            imageVector = category.icon,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text(
-                                            text = category.label,
-                                            style = MaterialTheme.typography.labelLarge,
-                                            color = MaterialTheme.colorScheme.onSecondaryContainer
-                                        )
-                                    }
-                                }
-                            }
+                            stickyHeader { CategoryHeader(category) }
 
                             // 2. Items in this category
                             items(items = items, key = { item -> "${item.category}_${item.id}" }) { item ->
@@ -247,14 +222,13 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
                                         }
                                     }
                                 ) {
-                                    // --- THE FIX FOR THE TRANSPARENCY ---
                                     Surface(
                                         modifier = Modifier.fillMaxWidth(),
                                         color = MaterialTheme.colorScheme.surface // Forces a solid background
                                     ) {
                                         ShoppingListItem(
                                             item = item,
-                                            onCheckedChange = { viewModel.toggleItem(item, it) },
+                                            onCheckedChange = { viewModel.togglePurchased(item) },
                                             onDelete = { itemToDelete = item }
                                         )
                                     }
@@ -291,3 +265,55 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
         }
     }
 }
+
+@Composable
+fun CategoryHeader(category: ShoppingCategory) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.secondaryContainer,
+        shadowElevation = 2.dp
+    ) {
+        Row(
+            modifier = Modifier.padding(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = category.icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = category.label,
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+        }
+    }
+}
+
+/*
+Surface(
+modifier = Modifier.fillMaxWidth(),
+color = MaterialTheme.colorScheme.secondaryContainer,
+shadowElevation = 2.dp
+) {
+    Row(
+        modifier = Modifier.padding(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = category.icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(20.dp)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = category.label,
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSecondaryContainer
+        )
+    }
+}*/
