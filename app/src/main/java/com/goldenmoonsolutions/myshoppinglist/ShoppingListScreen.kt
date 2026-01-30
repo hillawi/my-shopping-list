@@ -2,6 +2,7 @@ package com.goldenmoonsolutions.myshoppinglist
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -33,6 +35,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
@@ -58,6 +61,10 @@ import com.goldenmoonsolutions.myshoppinglist.domain.ShoppingItem
 import com.goldenmoonsolutions.myshoppinglist.ui.ShoppingListItem
 import com.goldenmoonsolutions.myshoppinglist.viewmodel.ShoppingListViewModel
 
+val SHOPPING_UNITS = listOf(
+    "pcs", "kg", "g", "L", "ml", "pack", "can", "bottle", "box"
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
@@ -69,6 +76,7 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
     var itemToDelete by remember { mutableStateOf<ShoppingItem?>(null) }
     var expanded by remember { mutableStateOf(false) }
     var selectedCategory by remember { mutableStateOf(ShoppingCategory.GENERAL) }
+
 
     Scaffold(
         topBar = {
@@ -89,160 +97,210 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
         ) {
             // --- 1. BETTER INPUT LAYOUT (Stacked) ---
             Column(modifier = Modifier.fillMaxWidth()) {
-                // Row 1: Name and Qty
-                Row(Modifier.fillMaxWidth()) {
-                    OutlinedTextField(
-                        value = itemName,
-                        onValueChange = { itemName = it },
-                        modifier = Modifier.weight(1f),
-                        label = { Text("Item Name") },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    OutlinedTextField(
-                        value = itemQuantity,
-                        onValueChange = { itemQuantity = it },
-                        modifier = Modifier.width(80.dp),
-                        label = { Text("Qty") },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                        keyboardActions = KeyboardActions(onDone = {
-                            // Quick add on Enter
-                            if (itemName.isNotBlank()) {
-                                viewModel.addOrUpdateItem(itemName, selectedCategory)
-                                itemName = ""
-                                itemQuantity = "1"
-                            }
-                        })
-                    )
-                }
+                // --- 1. INPUT SECTION ---
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    // ROW A: Name and Qty Inputs
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        OutlinedTextField(
+                            value = itemName,
+                            onValueChange = { itemName = it },
+                            modifier = Modifier.weight(1f),
+                            label = { Text("Item Name") },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
+                        )
 
-                Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
 
-                // Row 2: Category and Add Button
-                Row(Modifier.fillMaxWidth()) {
-                    // Category Dropdown
-                    Box(modifier = Modifier.weight(1f)) {
-                        OutlinedCard(
-                            onClick = { expanded = true },
-                            modifier = Modifier.fillMaxWidth().height(56.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(selectedCategory.icon, null, modifier = Modifier.size(20.dp))
-                                Spacer(Modifier.width(8.dp))
-                                Text(selectedCategory.label)
-                            }
-                        }
-                        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                            ShoppingCategory.entries.forEach { cat ->
-                                DropdownMenuItem(
-                                    text = {
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Icon(cat.icon, null, modifier = Modifier.size(18.dp))
-                                            Spacer(Modifier.width(12.dp))
-                                            Text(cat.label)
-                                        }
-                                    },
-                                    onClick = {
-                                        selectedCategory = cat
-                                        expanded = false
-                                    }
-                                )
-                            }
-                        }
+                        OutlinedTextField(
+                            value = itemQuantity,
+                            onValueChange = { itemQuantity = it },
+                            modifier = Modifier.width(100.dp), // Wider for "1.5 kg"
+                            label = { Text("Qty") },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                            keyboardActions = KeyboardActions(onDone = {
+                                if (itemName.isNotBlank()) {
+                                    viewModel.addOrUpdateItem(
+                                        itemName,
+                                        itemQuantity,
+                                        selectedCategory
+                                    )
+                                    itemName = ""
+                                    itemQuantity = "1"
+                                }
+                            })
+                        )
                     }
 
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    // Add Button
-                    Button(
-                        onClick = {
-                            if (itemName.isNotBlank()) {
-                                viewModel.addOrUpdateItem(itemName, selectedCategory)
-                                itemName = ""
-                                itemQuantity = "1"
-                            }
-                        },
-                        modifier = Modifier.height(56.dp)
+                    // ROW B: Unit Chips (Smart Suggestions)
+                    // This sits right below the inputs for easy tapping
+                    LazyRow(
+                        modifier = Modifier.padding(vertical = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text("Add")
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // --- 2. UNIFIED LIST (Active + History) ---
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = 16.dp)
-            ) {
-                // PART A: ACTIVE ITEMS (Grouped)
-                activeItems.forEach { (category, items) ->
-                    stickyHeader { CategoryHeader(category) }
-
-                    items(items, key = { "active_${it.id}" }) { item ->
-                        SwipeToDeleteItem(
-                            item = item,
-                            onSwipeDelete = { itemToDelete = item },
-                            content = {
-                                ShoppingListItem(
-                                    item = item,
-                                    onCheckedChange = { viewModel.togglePurchased(item) },
-                                    onDelete = { itemToDelete = item }
-                                )
-                            }
-                        )
-                        HorizontalDivider()
-                    }
-                }
-
-                // PART B: HISTORY / PANTRY (If exists)
-                if (purchasedItems.isNotEmpty()) {
-                    item {
-                        Spacer(modifier = Modifier.height(24.dp))
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            HorizontalDivider(modifier = Modifier.weight(1f))
-                            Text(
-                                "Recently Purchased",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = Color.Gray,
-                                modifier = Modifier.padding(horizontal = 8.dp)
+                        items(SHOPPING_UNITS) { unit ->
+                            SuggestionChip(
+                                onClick = {
+                                    // Logic: Extract number, append new unit
+                                    // "2" + tap "kg" -> "2 kg"
+                                    // "2 kg" + tap "L" -> "2 L"
+                                    val numberRegex = Regex("[\\d\\.]+")
+                                    val match = numberRegex.find(itemQuantity)
+                                    val number = match?.value ?: "1"
+                                    itemQuantity = "$number $unit"
+                                },
+                                label = { Text(unit) }
                             )
-                            HorizontalDivider(modifier = Modifier.weight(1f))
                         }
                     }
 
-                    items(purchasedItems, key = { "history_${it.id}" }) { item ->
-                        PurchasedHistoryItem(
-                            item = item,
-                            onRestore = { viewModel.togglePurchased(item) }
-                        )
+                    // ROW C: Category & Button
+                    Row(Modifier.fillMaxWidth()) {
+                        // Category Dropdown
+                        Box(modifier = Modifier.weight(1f)) {
+                            OutlinedCard(
+                                onClick = { expanded = true },
+                                modifier = Modifier.fillMaxWidth().height(56.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(selectedCategory.icon, null, modifier = Modifier.size(20.dp))
+                                    Spacer(Modifier.width(8.dp))
+                                    Text(selectedCategory.label)
+                                }
+                            }
+                            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                                ShoppingCategory.entries.forEach { cat ->
+                                    DropdownMenuItem(
+                                        text = {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Icon(cat.icon, null, modifier = Modifier.size(18.dp))
+                                                Spacer(Modifier.width(12.dp))
+                                                Text(cat.label)
+                                            }
+                                        },
+                                        onClick = {
+                                            selectedCategory = cat
+                                            expanded = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        Button(
+                            onClick = {
+                                if (itemName.isNotBlank()) {
+                                    viewModel.addOrUpdateItem(
+                                        itemName,
+                                        itemQuantity,
+                                        selectedCategory
+                                    )
+                                    itemName = ""
+                                    itemQuantity = "1"
+                                }
+                            },
+                            modifier = Modifier.height(56.dp)
+                        ) {
+                            Text("Add")
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // --- 2. UNIFIED LIST (Active + History) ---
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(bottom = 16.dp)
+                ) {
+                    // PART A: ACTIVE ITEMS (Grouped)
+                    activeItems.forEach { (category, items) ->
+                        stickyHeader { CategoryHeader(category) }
+
+                        items(items, key = { "active_${it.id}" }) { item ->
+                            val dismissState = rememberSwipeToDismissBoxState(
+                                confirmValueChange = { dismissValue ->
+                                    if (dismissValue == SwipeToDismissBoxValue.EndToStart ||
+                                        dismissValue == SwipeToDismissBoxValue.StartToEnd) {
+                                        itemToDelete = item // Triggers the AlertDialog
+                                        false // Don't let the item disappear until confirmed
+                                    } else false
+                                }
+                            )
+
+                            SwipeToDismissBox(
+                                state = dismissState,
+                                backgroundContent = {
+                                    val color = if (dismissState.dismissDirection != SwipeToDismissBoxValue.Settled) Color.Red else Color.Transparent
+                                    Box(
+                                        modifier = Modifier.fillMaxSize().background(color).padding(horizontal = 20.dp),
+                                        contentAlignment = Alignment.CenterEnd
+                                    ) {
+                                        Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.White)
+                                    }
+                                }
+                            ) {
+                                Surface(color = MaterialTheme.colorScheme.surface) {
+                                    // Parameter 'onDelete' is now gone!
+                                    ShoppingListItem(
+                                        item = item,
+                                        onCheckedChange = { viewModel.togglePurchased(item) }
+                                    )
+                                }
+                            }
+                            HorizontalDivider()
+                        }
+                    }
+
+                    // PART B: HISTORY / PANTRY (If exists)
+                    if (purchasedItems.isNotEmpty()) {
+                        item {
+                            Spacer(modifier = Modifier.height(24.dp))
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                HorizontalDivider(modifier = Modifier.weight(1f))
+                                Text(
+                                    "Recently Purchased",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = Color.Gray,
+                                    modifier = Modifier.padding(horizontal = 8.dp)
+                                )
+                                HorizontalDivider(modifier = Modifier.weight(1f))
+                            }
+                        }
+
+                        items(purchasedItems, key = { "history_${it.id}" }) { item ->
+                            PurchasedHistoryItem(
+                                item = item,
+                                onRestore = { viewModel.togglePurchased(item) }
+                            )
+                        }
                     }
                 }
             }
-        }
 
-        // Delete Dialog
-        itemToDelete?.let { item ->
-            AlertDialog(
-                onDismissRequest = { itemToDelete = null },
-                title = { Text("Delete Item") },
-                text = { Text("Permanently delete '${item.name}'?") },
-                confirmButton = {
-                    TextButton(onClick = {
-                        viewModel.removeItem(item)
-                        itemToDelete = null
-                    }) { Text("Delete", color = Color.Red) }
-                },
-                dismissButton = {
-                    TextButton(onClick = { itemToDelete = null }) { Text("Cancel") }
-                }
-            )
+            // Delete Dialog
+            itemToDelete?.let { item ->
+                AlertDialog(
+                    onDismissRequest = { itemToDelete = null },
+                    title = { Text("Delete Item") },
+                    text = { Text("Permanently delete '${item.name}'?") },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            viewModel.removeItem(item)
+                            itemToDelete = null
+                        }) { Text("Delete", color = Color.Red) }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { itemToDelete = null }) { Text("Cancel") }
+                    }
+                )
+            }
         }
     }
 }

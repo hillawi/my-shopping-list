@@ -1,47 +1,50 @@
 package com.goldenmoonsolutions.myshoppinglist.ui
 
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import com.goldenmoonsolutions.myshoppinglist.domain.ShoppingItem
 
 @Composable
-fun ShoppingListItem (
+fun ShoppingListItem(
     item: ShoppingItem,
-    onCheckedChange: (Boolean) -> Unit,
-    onDelete: () -> Unit
+    onCheckedChange: (Boolean) -> Unit
 ) {
-    Row(
-        modifier = Modifier
-        .fillMaxWidth()
-        .padding(8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // 1. The checkbox
-        Checkbox(
-            checked = item.isPurchased,
-            onCheckedChange = onCheckedChange
-        )
-
-        // 2. The Name and Quantity
-        Text(
-            text = "${item.name} (x${item.quantity})",
-            modifier = Modifier.weight(1f)
-        )
-
-        // 3. the Delete Button
-        IconButton(onClick = onDelete) {
-            Icon(imageVector = Icons.Default.Close, contentDescription = "Delete")
-        }
-    }
+    ListItem(
+        headlineContent = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                // Display quantity prominently if it's not the default "1"
+                if (item.quantity != "1") {
+                    Text(
+                        text = "${item.quantity} ",
+                        fontWeight = FontWeight.Bold,
+                        color = if (item.isPurchased) Color.Gray else MaterialTheme.colorScheme.primary,
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                }
+                Text(
+                    text = item.name,
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        textDecoration = if (item.isPurchased) TextDecoration.LineThrough else TextDecoration.None,
+                        color = if (item.isPurchased) Color.Gray else Color.Unspecified
+                    )
+                )
+            }
+        },
+        leadingContent = {
+            Checkbox(
+                checked = item.isPurchased,
+                onCheckedChange = onCheckedChange
+            )
+        },
+        colors = ListItemDefaults.colors(containerColor = Color.Transparent)
+    )
 }

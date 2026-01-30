@@ -59,11 +59,12 @@ class ShoppingListViewModel : ViewModel() {
             .launchIn(viewModelScope)
     }
 
-    fun addOrUpdateItem(name: String, category: ShoppingCategory) {
+    fun addOrUpdateItem(name: String, quantity: String, category: ShoppingCategory) {
         viewModelScope.launch {
             val item = ShoppingItem(
                 name = name.trim(),
                 category = category.name, // Use .name for consistency with Enum
+                quantity = quantity.ifBlank { "1" },
                 isPurchased = false // Always bring back to active list
             )
             // 'upsert' checks for name conflict. If found, it updates (e.g. setting isPurchased to false)

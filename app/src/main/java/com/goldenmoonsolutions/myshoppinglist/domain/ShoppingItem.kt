@@ -8,8 +8,7 @@ import kotlinx.serialization.Transient
 data class ShoppingItem(
     val id: Long? = null,
     val name: String,
-    @Transient
-    val quantity: Int = 1,
+    val quantity: String = "1",
     val category: String = ShoppingCategory.GENERAL.name,
     @SerialName("is_purchased")
     val isPurchased: Boolean = false,
@@ -17,6 +16,4 @@ data class ShoppingItem(
     val createdAt: String? = null,
     @SerialName("user_email")
     val userEmail: String? = null
-) {
-    val categoryInfo get() = ShoppingCategory.fromString(category)
-}
+)
