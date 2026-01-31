@@ -71,6 +71,8 @@ import com.goldenmoonsolutions.myshoppinglist.domain.ShoppingItem
 import com.goldenmoonsolutions.myshoppinglist.ui.ShoppingListItem
 import com.goldenmoonsolutions.myshoppinglist.viewmodel.ShoppingListViewModel
 import kotlinx.coroutines.launch
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 val SHOPPING_UNITS = listOf(
     "pcs", "kg", "g", "L", "ml", "pack", "can", "bottle", "box"
@@ -372,6 +374,8 @@ fun generateShareText(activeItems: Map<ShoppingCategory, List<ShoppingItem>>): S
 
     return buildString {
         appendLine("🛒 *Shopping List*")
+        appendLine("-------------------------")
+
         activeItems.forEach { (category, items) ->
             appendLine("\n*${category.label}*") // Bold category
             items.forEach { item ->
@@ -379,7 +383,16 @@ fun generateShareText(activeItems: Map<ShoppingCategory, List<ShoppingItem>>): S
                 appendLine("$qty${item.name}")
             }
         }
+
+        appendLine("\n-------------------------")
+        appendLine("🕒 _Last updated: ${getFormattedTimestamp()}_")
     }
+}
+
+fun getFormattedTimestamp(): String {
+    val current = LocalDateTime.now()
+    val formatter = DateTimeFormatter.ofPattern("MMM d, hh:mm a")
+    return current.format(formatter)
 }
 
 // --- HELPER COMPOSABLE ---
