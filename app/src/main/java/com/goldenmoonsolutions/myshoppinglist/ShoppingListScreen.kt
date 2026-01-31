@@ -1,5 +1,8 @@
 package com.goldenmoonsolutions.myshoppinglist
 
+import android.content.ClipData
+import android.content.Intent
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -20,8 +23,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
@@ -29,6 +34,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
@@ -49,10 +55,14 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.ClipEntry
+import androidx.compose.ui.platform.LocalClipboard
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
@@ -60,6 +70,7 @@ import com.goldenmoonsolutions.myshoppinglist.domain.ShoppingCategory
 import com.goldenmoonsolutions.myshoppinglist.domain.ShoppingItem
 import com.goldenmoonsolutions.myshoppinglist.ui.ShoppingListItem
 import com.goldenmoonsolutions.myshoppinglist.viewmodel.ShoppingListViewModel
+import kotlinx.coroutines.launch
 
 val SHOPPING_UNITS = listOf(
     "pcs", "kg", "g", "L", "ml", "pack", "can", "bottle", "box"
@@ -70,6 +81,36 @@ val SHOPPING_UNITS = listOf(
 fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
     val activeItems by viewModel.activeItems.collectAsState()
     val purchasedItems by viewModel.purchasedItems.collectAsState()
+
+    val context = LocalContext.current
+    val clipboard = LocalClipboard.current
+    val scope = rememberCoroutineScope()
+
+    val shareList = {
+        val sendIntent: Intent = Intent().apply {
+            action = Intent.ACTION_SEND
+            putExtra(Intent.EXTRA_TEXT, generateShareText(activeItems))
+            type = "text/plain"
+        }
+        val shareIntent = Intent.createChooser(sendIntent, null)
+        context.startActivity(shareIntent)
+    }
+
+    val copyToClipboard = {
+        val textToCopy = generateShareText(activeItems)
+
+        scope.launch {
+            try {
+                val clipEntry = ClipEntry(
+                    ClipData.newPlainText("Shopping List", textToCopy)
+                )
+                clipboard.setClipEntry(clipEntry)
+                Toast.makeText(context, "List copied to clipboard!", Toast.LENGTH_SHORT).show()
+            } catch (e: Exception) {
+                Toast.makeText(context, "Failed to copy list", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
 
     var itemName by remember { mutableStateOf("") }
     var itemQuantity by remember { mutableStateOf("1") }
@@ -85,7 +126,21 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                )
+                ),
+                actions = {
+                    IconButton(onClick = {copyToClipboard()}) {
+                        Icon(
+                            imageVector = Icons.Default.ContentCopy,
+                            contentDescription = "Copy List"
+                        )
+                    }
+                    IconButton(onClick = { shareList() }) {
+                        Icon(
+                            imageVector = Icons.Default.Share,
+                            contentDescription = "Share List"
+                        )
+                    }
+                },
             )
         }
     ) { paddingValues ->
@@ -145,7 +200,7 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
                                     // Logic: Extract number, append new unit
                                     // "2" + tap "kg" -> "2 kg"
                                     // "2 kg" + tap "L" -> "2 L"
-                                    val numberRegex = Regex("[\\d\\.]+")
+                                    val numberRegex = Regex("[\\d.]+")
                                     val match = numberRegex.find(itemQuantity)
                                     val number = match?.value ?: "1"
                                     itemQuantity = "$number $unit"
@@ -161,10 +216,14 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
                         Box(modifier = Modifier.weight(1f)) {
                             OutlinedCard(
                                 onClick = { expanded = true },
-                                modifier = Modifier.fillMaxWidth().height(56.dp)
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(56.dp)
                             ) {
                                 Row(
-                                    modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp),
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(horizontal = 12.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Icon(selectedCategory.icon, null, modifier = Modifier.size(20.dp))
@@ -239,7 +298,10 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
                                 backgroundContent = {
                                     val color = if (dismissState.dismissDirection != SwipeToDismissBoxValue.Settled) Color.Red else Color.Transparent
                                     Box(
-                                        modifier = Modifier.fillMaxSize().background(color).padding(horizontal = 20.dp),
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .background(color)
+                                            .padding(horizontal = 20.dp),
                                         contentAlignment = Alignment.CenterEnd
                                     ) {
                                         Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.White)
@@ -305,7 +367,22 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
     }
 }
 
-// --- HELPER COMPOSABLES ---
+fun generateShareText(activeItems: Map<ShoppingCategory, List<ShoppingItem>>): String {
+    if (activeItems.isEmpty()) return "Your list is currently empty."
+
+    return buildString {
+        appendLine("🛒 *Shopping List*")
+        activeItems.forEach { (category, items) ->
+            appendLine("\n*${category.label}*") // Bold category
+            items.forEach { item ->
+                val qty = if (item.quantity != "1") "(${item.quantity}) " else "• "
+                appendLine("$qty${item.name}")
+            }
+        }
+    }
+}
+
+// --- HELPER COMPOSABLE ---
 
 @Composable
 fun SwipeToDeleteItem(
