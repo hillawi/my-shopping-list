@@ -1,3 +1,34 @@
 <resources>
     <string name="app_name">MyShoppingList</string>
+    <string name="item_name_label">Item Name</string>
+    <string name="qty_label">Qty</string>
+    <string name="add_button">Add</string>
+    <string name="share_title">🛒 *My Shopping List*</string>
+    <string name="last_updated">Last updated: %1$s</string>
+    <string name="history_header">Recently Purchased</string>
+    <string name="delete_title">Delete Item</string>
+    <string name="delete_confirm">Permanently delete \'%1$s\'?</string>
+    <string name="copied_toast">List copied to clipboard!</string>
+    <string name="empty_list_message">Your list is currently empty</string>
+    <!-- Categories -->
+    <string name="cat_general">General</string>
+    <string name="cat_produce">Fruits &amp; Vegetables</string>
+    <string name="cat_dairy">Dairy &amp; Eggs</string>
+    <string name="cat_meat">Meat &amp; Fish</string>
+    <string name="cat_pantry">Pantry &amp; Spices</string>
+    <string name="cat_bakery">Bakery</string>
+    <string name="cat_household">Household &amp; Cleaning</string>
+    <string name="cat_frozen">Frozen Food</string>
+    <string name="cat_snacks">Snacks &amp; Sweets</string>
+    <string name="cat_beverages">Beverages</string>
+    <!-- Units -->
+    <string name="unit_label">Unit</string>
+    <string name="unit_pcs">pcs</string>
+    <string name="unit_kg">kg</string>
+    <string name="unit_g">g</string>
+    <string name="unit_l">L</string>
+    <string name="unit_ml">ml</string>
+    <string name="unit_pack">pack</string>
+    <string name="unit_box">box</string>
+    <string name="unit_bottle">bottle</string>
 </resources>

@@ -1,0 +1,34 @@
+<resources>
+    <string name="app_name">قائمة تسوقي</string>
+    <string name="item_name_label">اسم المنتج</string>
+    <string name="qty_label">الكمية</string>
+    <string name="add_button">إضافة</string>
+    <string name="share_title">🛒 *قائمة التسوق الخاصة بي*</string>
+    <string name="last_updated">آخر تحديث: %1$s</string>
+    <string name="history_header">تم شراؤه مؤخراً</string>
+    <string name="delete_title">حذف المنتج</string>
+    <string name="delete_confirm">هل تريد حذف \'%1$s\' نهائياً؟</string>
+    <string name="copied_toast">تم نسخ القائمة!</string>
+    <string name="empty_list_message">قائمتك فارغة حاليًا</string>
+    <!-- Categories -->
+    <string name="cat_general">عام</string>
+    <string name="cat_produce">خضروات و فواكه</string>
+    <string name="cat_dairy">ألبان و أجبان</string>
+    <string name="cat_meat">لحوم و أسماك</string>
+    <string name="cat_pantry">المؤن و التوابل</string>
+    <string name="cat_bakery">المخبوزات</string>
+    <string name="cat_household">المنظفات و المنزل</string>
+    <string name="cat_frozen">مجمدات</string>
+    <string name="cat_snacks">وجبات خفيفة و حلويات</string>
+    <string name="cat_beverages">مشروبات</string>
+    <!-- Units -->
+    <string name="unit_label">الوحدة</string>
+    <string name="unit_pcs">قطعة</string>
+    <string name="unit_kg">كجم</string>
+    <string name="unit_g">جم</string>
+    <string name="unit_l">لتر</string>
+    <string name="unit_ml">مل</string>
+    <string name="unit_pack">عبوة</string>
+    <string name="unit_box">صندوق</string>
+    <string name="unit_bottle">زجاجة</string>
+</resources>

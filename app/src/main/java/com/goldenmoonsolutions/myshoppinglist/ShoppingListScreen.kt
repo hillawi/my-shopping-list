@@ -1,10 +1,15 @@
 package com.goldenmoonsolutions.myshoppinglist
 
+import android.app.LocaleManager
 import android.content.ClipData
+import android.content.Context
 import android.content.Intent
+import android.os.LocaleList
 import android.widget.Toast
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,11 +25,15 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
@@ -32,6 +41,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -41,7 +51,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
@@ -63,9 +72,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import com.goldenmoonsolutions.myshoppinglist.domain.MeasurementUnit
 import com.goldenmoonsolutions.myshoppinglist.domain.ShoppingCategory
 import com.goldenmoonsolutions.myshoppinglist.domain.ShoppingItem
 import com.goldenmoonsolutions.myshoppinglist.ui.ShoppingListItem
@@ -74,15 +85,19 @@ import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
-val SHOPPING_UNITS = listOf(
-    "pcs", "kg", "g", "L", "ml", "pack", "can", "bottle", "box"
-)
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
     val activeItems by viewModel.activeItems.collectAsState()
     val purchasedItems by viewModel.purchasedItems.collectAsState()
+
+    // State for the Settings Menu
+    var menuExpanded by remember { mutableStateOf(false) }
+
+    var selectedUnit by remember { mutableStateOf(MeasurementUnit.PCS) }
+
+    // Get current language
+    val currentLocale = AppCompatDelegate.getApplicationLocales()[0]?.language ?: "en"
 
     val context = LocalContext.current
     val clipboard = LocalClipboard.current
@@ -91,7 +106,7 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
     val shareList = {
         val sendIntent: Intent = Intent().apply {
             action = Intent.ACTION_SEND
-            putExtra(Intent.EXTRA_TEXT, generateShareText(activeItems))
+            putExtra(Intent.EXTRA_TEXT, generateShareText(context, activeItems))
             type = "text/plain"
         }
         val shareIntent = Intent.createChooser(sendIntent, null)
@@ -99,7 +114,7 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
     }
 
     val copyToClipboard = {
-        val textToCopy = generateShareText(activeItems)
+        val textToCopy = generateShareText(context, activeItems)
 
         scope.launch {
             try {
@@ -107,7 +122,7 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
                     ClipData.newPlainText("Shopping List", textToCopy)
                 )
                 clipboard.setClipEntry(clipEntry)
-                Toast.makeText(context, "List copied to clipboard!", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, context.getString(R.string.copied_toast), Toast.LENGTH_SHORT).show()
             } catch (e: Exception) {
                 Toast.makeText(context, "Failed to copy list", Toast.LENGTH_SHORT).show()
             }
@@ -124,23 +139,47 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("My Shopping List") },
+                title = { Text(stringResource(R.string.app_name)) },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
                 ),
                 actions = {
+                    // 1. Copy Button
                     IconButton(onClick = {copyToClipboard()}) {
                         Icon(
                             imageVector = Icons.Default.ContentCopy,
                             contentDescription = "Copy List"
                         )
                     }
+                    // 2. Share Button
                     IconButton(onClick = { shareList() }) {
                         Icon(
                             imageVector = Icons.Default.Share,
                             contentDescription = "Share List"
                         )
+                    }
+                    // 3. Settings/Language Menu
+                    Box {
+                        IconButton(onClick = { menuExpanded = true }) {
+                            Icon(Icons.Default.MoreVert, contentDescription = "Settings")
+                        }
+                        DropdownMenu(
+                            expanded = menuExpanded,
+                            onDismissRequest = { menuExpanded = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = {
+                                    Text(if (currentLocale == "ar") "English" else "العربية")
+                                },
+                                leadingIcon = { Icon(Icons.Default.Language, contentDescription = null) },
+                                onClick = {
+                                    val newLang = if (currentLocale == "ar") "en" else "ar"
+                                    changeAppLanguage(context, newLang)
+                                    menuExpanded = false
+                                }
+                            )
+                        }
                     }
                 },
             )
@@ -162,7 +201,7 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
                             value = itemName,
                             onValueChange = { itemName = it },
                             modifier = Modifier.weight(1f),
-                            label = { Text("Item Name") },
+                            label = { Text(stringResource(R.string.item_name_label)) },
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
                         )
@@ -173,7 +212,7 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
                             value = itemQuantity,
                             onValueChange = { itemQuantity = it },
                             modifier = Modifier.width(100.dp), // Wider for "1.5 kg"
-                            label = { Text("Qty") },
+                            label = { Text(stringResource(R.string.qty_label)) },
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                             keyboardActions = KeyboardActions(onDone = {
@@ -181,10 +220,12 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
                                     viewModel.addOrUpdateItem(
                                         itemName,
                                         itemQuantity,
+                                        selectedUnit,
                                         selectedCategory
                                     )
                                     itemName = ""
                                     itemQuantity = "1"
+                                    selectedUnit = MeasurementUnit.PCS
                                 }
                             })
                         )
@@ -196,18 +237,20 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
                         modifier = Modifier.padding(vertical = 8.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        items(SHOPPING_UNITS) { unit ->
-                            SuggestionChip(
+                        items(MeasurementUnit.entries.toTypedArray()) { unitEnum ->
+                            // Using FilterChip or SuggestionChip
+                            FilterChip(
+                                selected = selectedUnit == unitEnum,
                                 onClick = {
-                                    // Logic: Extract number, append new unit
-                                    // "2" + tap "kg" -> "2 kg"
-                                    // "2 kg" + tap "L" -> "2 L"
-                                    val numberRegex = Regex("[\\d.]+")
-                                    val match = numberRegex.find(itemQuantity)
-                                    val number = match?.value ?: "1"
-                                    itemQuantity = "$number $unit"
+                                    selectedUnit = unitEnum
                                 },
-                                label = { Text(unit) }
+                                label = {
+                                    // This fetches the translated label automatically
+                                    Text(stringResource(unitEnum.resId))
+                                },
+                                leadingIcon = if (selectedUnit == unitEnum) {
+                                    { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                                } else null
                             )
                         }
                     }
@@ -230,7 +273,7 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
                                 ) {
                                     Icon(selectedCategory.icon, null, modifier = Modifier.size(20.dp))
                                     Spacer(Modifier.width(8.dp))
-                                    Text(selectedCategory.label)
+                                    Text(stringResource(selectedCategory.resId))
                                 }
                             }
                             DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
@@ -240,7 +283,7 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
                                             Row(verticalAlignment = Alignment.CenterVertically) {
                                                 Icon(cat.icon, null, modifier = Modifier.size(18.dp))
                                                 Spacer(Modifier.width(12.dp))
-                                                Text(cat.label)
+                                                Text(stringResource(cat.resId))
                                             }
                                         },
                                         onClick = {
@@ -260,6 +303,7 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
                                     viewModel.addOrUpdateItem(
                                         itemName,
                                         itemQuantity,
+                                        selectedUnit,
                                         selectedCategory
                                     )
                                     itemName = ""
@@ -352,8 +396,8 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
             itemToDelete?.let { item ->
                 AlertDialog(
                     onDismissRequest = { itemToDelete = null },
-                    title = { Text("Delete Item") },
-                    text = { Text("Permanently delete '${item.name}'?") },
+                    title = { Text(stringResource(R.string.delete_title)) },
+                    text = { Text(stringResource(R.string.delete_confirm, item.name)) },
                     confirmButton = {
                         TextButton(onClick = {
                             viewModel.removeItem(item)
@@ -369,30 +413,44 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
     }
 }
 
-fun generateShareText(activeItems: Map<ShoppingCategory, List<ShoppingItem>>): String {
-    if (activeItems.isEmpty()) return "Your list is currently empty."
+fun generateShareText(
+    context: Context,
+    activeItems: Map<ShoppingCategory, List<ShoppingItem>>): String {
+    if (activeItems.isEmpty()) return context.getString(R.string.empty_list_message)
 
     return buildString {
-        appendLine("🛒 *Shopping List*")
+        appendLine(context.getString(R.string.share_title))
         appendLine("-------------------------")
 
         activeItems.forEach { (category, items) ->
-            appendLine("\n*${category.label}*") // Bold category
+            appendLine("\n*${context.getString(category.resId)}*") // Bold category
             items.forEach { item ->
-                val qty = if (item.quantity != "1") "(${item.quantity}) " else "• "
-                appendLine("$qty${item.name}")
+                val unitLabel = context.getString(item.unit.resId)
+                val qtyPart = if (item.quantity.isNotEmpty()) {
+                    "(${item.quantity} $unitLabel) "
+                } else {
+                    "• "
+                }
+
+                appendLine("$qtyPart${item.name}")
             }
         }
 
         appendLine("\n-------------------------")
-        appendLine("🕒 _Last updated: ${getFormattedTimestamp()}_")
+        appendLine(context.getString(R.string.last_updated, getFormattedTimestamp(context)))
     }
 }
 
-fun getFormattedTimestamp(): String {
+fun getFormattedTimestamp(context: Context): String {
     val current = LocalDateTime.now()
-    val formatter = DateTimeFormatter.ofPattern("MMM d, hh:mm a")
+    val locale = context.resources.configuration.locales[0]
+    val formatter = DateTimeFormatter.ofPattern("MMM d, hh:mm a", locale)
     return current.format(formatter)
+}
+
+fun changeAppLanguage(context: Context, languageCode: String) {
+    val localeManager = context.getSystemService(LocaleManager::class.java)
+    localeManager.applicationLocales = LocaleList.forLanguageTags(languageCode)
 }
 
 // --- HELPER COMPOSABLE ---
@@ -469,9 +527,22 @@ fun CategoryHeader(category: ShoppingCategory) {
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-                text = category.label,
+                text = stringResource(category.resId),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+        }
+    }
+}
+
+@Composable
+fun UnitSelector(selectedUnit: MeasurementUnit, onUnitSelected: (MeasurementUnit) -> Unit) {
+    Row(modifier = Modifier.horizontalScroll(rememberScrollState())) {
+        MeasurementUnit.entries.forEach { unit ->
+            FilterChip(
+                selected = selectedUnit == unit,
+                onClick = { onUnitSelected(unit) },
+                label = { Text(stringResource(unit.resId)) }
             )
         }
     }

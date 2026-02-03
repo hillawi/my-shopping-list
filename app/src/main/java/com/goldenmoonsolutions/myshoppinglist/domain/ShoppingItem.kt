@@ -8,6 +8,7 @@ data class ShoppingItem(
     val id: Long? = null,
     val name: String,
     val quantity: String = "1",
+    val unit: MeasurementUnit,
     val category: String = ShoppingCategory.GENERAL.name,
     @SerialName("is_purchased")
     val isPurchased: Boolean = false,

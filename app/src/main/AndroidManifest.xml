@@ -11,11 +11,13 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.MyShoppingList">
+        android:theme="@style/Theme.MyShoppingList"
+        android:localeConfig="@xml/locales_config">
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:theme="@style/Theme.MyShoppingList">
+            android:theme="@style/Theme.MyShoppingList"
+            android:configChanges="layoutDirection|locale">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
