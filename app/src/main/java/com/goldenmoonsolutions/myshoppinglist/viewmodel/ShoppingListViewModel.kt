@@ -5,13 +5,10 @@ import androidx.lifecycle.viewModelScope
 import com.goldenmoonsolutions.myshoppinglist.domain.MeasurementUnit
 import com.goldenmoonsolutions.myshoppinglist.domain.ShoppingCategory
 import com.goldenmoonsolutions.myshoppinglist.domain.ShoppingItem
+import com.goldenmoonsolutions.myshoppinglist.supabase
 import io.github.jan.supabase.annotations.SupabaseExperimental
-import io.github.jan.supabase.createSupabaseClient
-import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.postgrest.from
-import io.github.jan.supabase.realtime.Realtime
 import io.github.jan.supabase.realtime.selectAsFlow
-import io.ktor.client.engine.okhttp.OkHttp
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.launchIn
@@ -22,16 +19,6 @@ import kotlinx.coroutines.launch
 
 // ViewModel is kept in memory by the Android OS until the screen is permanently closed.
 class ShoppingListViewModel : ViewModel() {
-    // 1. Initialize Supabase
-    val supabase = createSupabaseClient(
-        supabaseUrl = "https://comxreruiurkxjawwkie.supabase.co",
-        supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNvbXhyZXJ1aXVya3hqYXd3a2llIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgwMzAwMzksImV4cCI6MjA4MzYwNjAzOX0.Pa-viBl4bIDoPUPPgcY__t375smzjCg8FY1t2lsldRg"
-    ) {
-        httpEngine = OkHttp.create()
-        install(Postgrest)
-        install(Realtime)
-    }
-
     private val _allItems = MutableStateFlow<List<ShoppingItem>>(emptyList())
 
     // 1. Active Items (Grouped by Category)

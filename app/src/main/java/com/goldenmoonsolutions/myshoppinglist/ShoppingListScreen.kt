@@ -29,6 +29,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
@@ -81,6 +82,7 @@ import com.goldenmoonsolutions.myshoppinglist.domain.ShoppingCategory
 import com.goldenmoonsolutions.myshoppinglist.domain.ShoppingItem
 import com.goldenmoonsolutions.myshoppinglist.ui.ShoppingListItem
 import com.goldenmoonsolutions.myshoppinglist.viewmodel.ShoppingListViewModel
+import io.github.jan.supabase.auth.auth
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -177,6 +179,15 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
                                     val newLang = if (currentLocale == "ar") "en" else "ar"
                                     changeAppLanguage(context, newLang)
                                     menuExpanded = false
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.logout)) },
+                                leadingIcon = { Icon(Icons.AutoMirrored.Default.ExitToApp, contentDescription = null)},
+                                onClick = {
+                                    scope.launch {
+                                        supabase.auth.signOut()
+                                    }
                                 }
                             )
                         }

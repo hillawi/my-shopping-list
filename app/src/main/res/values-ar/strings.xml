@@ -1,5 +1,6 @@
 <resources>
     <string name="app_name">قائمة تسوقي</string>
+    <string name="logout">تسجيل خروج</string>
     <string name="item_name_label">اسم المنتج</string>
     <string name="qty_label">الكمية</string>
     <string name="add_button">إضافة</string>
@@ -31,4 +32,6 @@
     <string name="unit_pack">عبوة</string>
     <string name="unit_box">صندوق</string>
     <string name="unit_bottle">زجاجة</string>
+    <string name="create_account">إنشاء حساب</string>
+    <string name="sign_in">تسجيل دخول</string>
 </resources>

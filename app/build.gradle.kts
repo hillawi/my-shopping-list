@@ -55,6 +55,8 @@ dependencies {
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.ktor.client.okhttp)
     implementation(libs.androidx.appcompat)
+    implementation(libs.gotrue.kt)
+    implementation(libs.postgrest.kt)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
