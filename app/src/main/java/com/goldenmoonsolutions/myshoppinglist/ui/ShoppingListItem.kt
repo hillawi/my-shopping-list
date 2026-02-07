@@ -9,6 +9,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import com.goldenmoonsolutions.myshoppinglist.domain.ShoppingItem
@@ -18,6 +20,7 @@ fun ShoppingListItem(
     item: ShoppingItem,
     onCheckedChange: (Boolean) -> Unit
 ) {
+    val haptic = LocalHapticFeedback.current
     ListItem(
         headlineContent = {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -42,7 +45,11 @@ fun ShoppingListItem(
         leadingContent = {
             Checkbox(
                 checked = item.isPurchased,
-                onCheckedChange = onCheckedChange
+                onCheckedChange = { isChecked ->
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onCheckedChange(isChecked)
+
+                }
             )
         },
         colors = ListItemDefaults.colors(containerColor = Color.Transparent)

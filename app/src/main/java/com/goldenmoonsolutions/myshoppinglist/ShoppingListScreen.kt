@@ -70,9 +70,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextDecoration
@@ -137,6 +139,7 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
     var expanded by remember { mutableStateOf(false) }
     var selectedCategory by remember { mutableStateOf(ShoppingCategory.GENERAL) }
 
+    val haptic = LocalHapticFeedback.current
 
     Scaffold(
         topBar = {
@@ -407,7 +410,10 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
                         items(purchasedItems, key = { "history_${it.id}" }) { item ->
                             PurchasedHistoryItem(
                                 item = item,
-                                onRestore = { viewModel.togglePurchased(item) }
+                                onRestore = {
+                                    viewModel.togglePurchased(item)
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                }
                             )
                         }
                     }
