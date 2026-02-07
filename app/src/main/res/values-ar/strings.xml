@@ -34,4 +34,5 @@
     <string name="unit_bottle">زجاجة</string>
     <string name="create_account">إنشاء حساب</string>
     <string name="sign_in">تسجيل دخول</string>
+    <string name="lang_button_label">العربية</string>
 </resources>

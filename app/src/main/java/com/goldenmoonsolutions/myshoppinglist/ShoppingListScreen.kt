@@ -170,15 +170,26 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
                             expanded = menuExpanded,
                             onDismissRequest = { menuExpanded = false }
                         ) {
+                            // Inside your TopAppBar actions:
+                            val localeManager = context.getSystemService(LocaleManager::class.java)
+                            // 1. Get current language tag
+                            val currentTag = if (!localeManager.applicationLocales.isEmpty) {
+                                localeManager.applicationLocales[0].toLanguageTag()
+                            } else "en"
+                            val targetLanguageLabel = if (currentTag.contains("ar")) "English" else "العربية"
                             DropdownMenuItem(
                                 text = {
-                                    Text(if (currentLocale == "ar") "English" else "العربية")
+                                    Text(
+                                        text = targetLanguageLabel,
+                                        style = MaterialTheme.typography.labelLarge
+                                    )
                                 },
                                 leadingIcon = { Icon(Icons.Default.Language, contentDescription = null) },
                                 onClick = {
-                                    val newLang = if (currentLocale == "ar") "en" else "ar"
-                                    changeAppLanguage(context, newLang)
-                                    menuExpanded = false
+                                    // 3. Toggle: If it contains "ar", switch to "en", otherwise "ar"
+                                    val newTag = if (currentTag.contains("ar")) "en" else "ar"
+                                    // 4. Apply the new locale (This triggers Activity recreation automatically!)
+                                    localeManager.applicationLocales = LocaleList.forLanguageTags(newTag)
                                 }
                             )
                             DropdownMenuItem(
@@ -457,11 +468,6 @@ fun getFormattedTimestamp(context: Context): String {
     val locale = context.resources.configuration.locales[0]
     val formatter = DateTimeFormatter.ofPattern("MMM d, hh:mm a", locale)
     return current.format(formatter)
-}
-
-fun changeAppLanguage(context: Context, languageCode: String) {
-    val localeManager = context.getSystemService(LocaleManager::class.java)
-    localeManager.applicationLocales = LocaleList.forLanguageTags(languageCode)
 }
 
 // --- HELPER COMPOSABLE ---

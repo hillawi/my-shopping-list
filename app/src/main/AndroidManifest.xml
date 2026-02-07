@@ -17,7 +17,7 @@
             android:name=".MainActivity"
             android:exported="true"
             android:theme="@style/Theme.MyShoppingList"
-            android:configChanges="layoutDirection|locale">
+            android:configChanges="layoutDirection">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
