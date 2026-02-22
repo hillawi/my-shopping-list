@@ -9,6 +9,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.goldenmoonsolutions.myshoppinglist.ui.LoginScreen
 import com.goldenmoonsolutions.myshoppinglist.ui.theme.MyShoppingListTheme
 import com.goldenmoonsolutions.myshoppinglist.viewmodel.ShoppingListViewModel
@@ -17,8 +18,16 @@ import io.github.jan.supabase.auth.status.SessionStatus
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        val splashScreen = installSplashScreen()
+
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        splashScreen.setKeepOnScreenCondition {
+            val currentStatus = supabase.auth.sessionStatus.value
+            currentStatus is SessionStatus.Initializing
+        }
+
         setContent {
             val sessionStatus by supabase.auth.sessionStatus.collectAsState()
 
