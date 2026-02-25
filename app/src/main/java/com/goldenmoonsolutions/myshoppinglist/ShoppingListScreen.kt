@@ -383,7 +383,8 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
                                     // Parameter 'onDelete' is now gone!
                                     ShoppingListItem(
                                         item = item,
-                                        onCheckedChange = { viewModel.togglePurchased(item) }
+                                        onCheckedChange = { viewModel.togglePurchased(item) },
+                                        onImportantToggle = { viewModel.toggleImportant(item) }
                                     )
                                 }
                             }

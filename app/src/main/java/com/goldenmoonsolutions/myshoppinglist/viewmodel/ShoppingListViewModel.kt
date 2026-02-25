@@ -78,4 +78,12 @@ class ShoppingListViewModel : ViewModel() {
             }
         }
     }
+
+    fun toggleImportant(item: ShoppingItem) {
+        viewModelScope.launch {
+            supabase.from("shopping_items").update({
+                ShoppingItem::isImportant setTo !item.isImportant
+            }) { filter { ShoppingItem::id eq item.id } }
+        }
+    }
 }
