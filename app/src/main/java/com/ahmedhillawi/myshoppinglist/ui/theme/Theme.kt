@@ -1,4 +1,4 @@
-package com.goldenmoonsolutions.myshoppinglist.ui.theme
+package com.ahmedhillawi.myshoppinglist.ui.theme
 
 import android.app.Activity
 import android.os.Build

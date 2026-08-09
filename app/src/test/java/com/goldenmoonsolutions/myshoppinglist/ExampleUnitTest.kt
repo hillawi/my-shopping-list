@@ -1,4 +1,4 @@
-package com.goldenmoonsolutions.myshoppinglist
+package com.ahmedhillawi.myshoppinglist
 
 import org.junit.Test
 

@@ -1,4 +1,4 @@
-package com.goldenmoonsolutions.myshoppinglist
+package com.ahmedhillawi.myshoppinglist
 
 import android.app.LocaleManager
 import android.content.ClipData
@@ -79,11 +79,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
-import com.goldenmoonsolutions.myshoppinglist.domain.MeasurementUnit
-import com.goldenmoonsolutions.myshoppinglist.domain.ShoppingCategory
-import com.goldenmoonsolutions.myshoppinglist.domain.ShoppingItem
-import com.goldenmoonsolutions.myshoppinglist.ui.ShoppingListItem
-import com.goldenmoonsolutions.myshoppinglist.viewmodel.ShoppingListViewModel
+import com.ahmedhillawi.myshoppinglist.domain.MeasurementUnit
+import com.ahmedhillawi.myshoppinglist.domain.ShoppingCategory
+import com.ahmedhillawi.myshoppinglist.domain.ShoppingItem
+import com.ahmedhillawi.myshoppinglist.ui.ShoppingListItem
+import com.ahmedhillawi.myshoppinglist.viewmodel.ShoppingListViewModel
 import io.github.jan.supabase.auth.auth
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime

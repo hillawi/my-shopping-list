@@ -1,4 +1,4 @@
-package com.goldenmoonsolutions.myshoppinglist.ui
+package com.ahmedhillawi.myshoppinglist.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -22,8 +22,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
-import com.goldenmoonsolutions.myshoppinglist.R
-import com.goldenmoonsolutions.myshoppinglist.supabase
+import com.ahmedhillawi.myshoppinglist.R
+import com.ahmedhillawi.myshoppinglist.supabase
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.builtin.Email
 import kotlinx.coroutines.launch

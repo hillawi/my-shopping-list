@@ -1,6 +1,6 @@
 # MyShoppingList
 
-A family shopping list app for Android, built with Kotlin and Jetpack Compose. Lists sync in real time across devices via Supabase, so everyone in the family sees updates as they happen.
+A shopping list app for Android, built with Kotlin and Jetpack Compose. Lists sync in real time across devices via Supabase.
 
 ## Features
 
@@ -36,7 +36,7 @@ A family shopping list app for Android, built with Kotlin and Jetpack Compose. L
 ## Project Structure
 
 ```
-app/src/main/java/com/goldenmoonsolutions/myshoppinglist/
+app/src/main/java/com/ahmedhillawi/myshoppinglist/
 ├── domain/       # Data models (ShoppingItem, ShoppingCategory, MeasurementUnit)
 ├── ui/           # Compose screens and components
 ├── viewmodel/    # ShoppingListViewModel
@@ -46,4 +46,4 @@ app/src/main/java/com/goldenmoonsolutions/myshoppinglist/
 
 ## Status
 
-Version 1.0.0 — first release, currently running in production for family use.
+Version 1.0.0 — first release, currently running in production.

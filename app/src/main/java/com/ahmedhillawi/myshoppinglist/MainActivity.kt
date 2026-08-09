@@ -1,4 +1,4 @@
-package com.goldenmoonsolutions.myshoppinglist
+package com.ahmedhillawi.myshoppinglist
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -10,9 +10,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
-import com.goldenmoonsolutions.myshoppinglist.ui.LoginScreen
-import com.goldenmoonsolutions.myshoppinglist.ui.theme.MyShoppingListTheme
-import com.goldenmoonsolutions.myshoppinglist.viewmodel.ShoppingListViewModel
+import com.ahmedhillawi.myshoppinglist.ui.LoginScreen
+import com.ahmedhillawi.myshoppinglist.ui.theme.MyShoppingListTheme
+import com.ahmedhillawi.myshoppinglist.viewmodel.ShoppingListViewModel
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.status.SessionStatus
 

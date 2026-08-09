@@ -1,4 +1,4 @@
-package com.goldenmoonsolutions.myshoppinglist.ui
+package com.ahmedhillawi.myshoppinglist.ui
 
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material.icons.Icons
@@ -18,7 +18,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
-import com.goldenmoonsolutions.myshoppinglist.domain.ShoppingItem
+import com.ahmedhillawi.myshoppinglist.domain.ShoppingItem
 
 @Composable
 fun ShoppingListItem(

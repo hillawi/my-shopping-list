@@ -1,11 +1,11 @@
-package com.goldenmoonsolutions.myshoppinglist.viewmodel
+package com.ahmedhillawi.myshoppinglist.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.goldenmoonsolutions.myshoppinglist.domain.MeasurementUnit
-import com.goldenmoonsolutions.myshoppinglist.domain.ShoppingCategory
-import com.goldenmoonsolutions.myshoppinglist.domain.ShoppingItem
-import com.goldenmoonsolutions.myshoppinglist.supabase
+import com.ahmedhillawi.myshoppinglist.domain.MeasurementUnit
+import com.ahmedhillawi.myshoppinglist.domain.ShoppingCategory
+import com.ahmedhillawi.myshoppinglist.domain.ShoppingItem
+import com.ahmedhillawi.myshoppinglist.supabase
 import io.github.jan.supabase.annotations.SupabaseExperimental
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.realtime.selectAsFlow

@@ -1,4 +1,4 @@
-package com.goldenmoonsolutions.myshoppinglist.domain
+package com.ahmedhillawi.myshoppinglist.domain
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable

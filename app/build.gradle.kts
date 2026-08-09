@@ -6,13 +6,13 @@ plugins {
 }
 
 android {
-    namespace = "com.goldenmoonsolutions.myshoppinglist"
+    namespace = "com.ahmedhillawi.myshoppinglist"
     compileSdk {
         version = release(36)
     }
 
     defaultConfig {
-        applicationId = "com.goldenmoonsolutions.myshoppinglist"
+        applicationId = "com.ahmedhillawi.myshoppinglist"
         minSdk = 34
         targetSdk = 36
         versionCode = 1

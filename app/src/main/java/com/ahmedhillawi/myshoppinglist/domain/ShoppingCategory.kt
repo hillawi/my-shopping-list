@@ -1,4 +1,4 @@
-package com.goldenmoonsolutions.myshoppinglist.domain
+package com.ahmedhillawi.myshoppinglist.domain
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AcUnit
@@ -11,7 +11,7 @@ import androidx.compose.material.icons.filled.LocalDrink
 import androidx.compose.material.icons.filled.ShoppingBasket
 import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.ui.graphics.vector.ImageVector
-import com.goldenmoonsolutions.myshoppinglist.R
+import com.ahmedhillawi.myshoppinglist.R
 
 enum class ShoppingCategory(val resId: Int, val order: Int, val icon: ImageVector) {
     PRODUCE(R.string.cat_produce, 1, Icons.Default.EnergySavingsLeaf),

@@ -1,7 +1,7 @@
-package com.goldenmoonsolutions.myshoppinglist.domain
+package com.ahmedhillawi.myshoppinglist.domain
 
 import androidx.annotation.StringRes
-import com.goldenmoonsolutions.myshoppinglist.R
+import com.ahmedhillawi.myshoppinglist.R
 import kotlinx.serialization.Serializable
 
 @Serializable
