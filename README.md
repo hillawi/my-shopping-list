@@ -47,3 +47,15 @@ app/src/main/java/com/ahmedhillawi/myshoppinglist/
 ## Status
 
 Version 1.0.0 — first release, currently running in production.
+
+## Contributing
+
+`main` and `develop` are protected — no direct pushes, every change goes through a pull request with a passing CI build.
+
+1. Branch from `develop` (not `main`): `feature/<name>` for new functionality, `fix/<name>` for bug fixes, `ci/<name>` or `docs/<name>` for tooling/docs.
+2. Open a PR into `develop`. The `build` check must pass before merging (self-merge is fine, no separate approval required).
+3. `develop` is merged into `main` via PR when it's time to cut a release, alongside a version bump in `app/build.gradle.kts`.
+
+## License
+
+MIT — see [LICENSE](LICENSE). Free to use, copy, and modify.
