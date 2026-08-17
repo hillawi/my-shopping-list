@@ -1,5 +1,6 @@
 package com.ahmedhillawi.myshoppinglist.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ahmedhillawi.myshoppinglist.domain.MeasurementUnit
@@ -9,12 +10,14 @@ import com.ahmedhillawi.myshoppinglist.supabase
 import io.github.jan.supabase.annotations.SupabaseExperimental
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.realtime.selectAsFlow
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 // ViewModel is kept in memory by the Android OS until the screen is permanently closed.
@@ -63,11 +66,25 @@ class ShoppingListViewModel : ViewModel() {
         }
     }
 
+    private fun updateItemLocally(id: Long?, transform: (ShoppingItem) -> ShoppingItem) {
+        if (id == null) return // Never matches a real item; guards against colliding on shared null ids.
+        _allItems.update { list -> list.map { if (it.id == id) transform(it) else it } }
+    }
+
     fun togglePurchased(item: ShoppingItem) {
+        val newValue = !item.isPurchased
+        updateItemLocally(item.id) { it.copy(isPurchased = newValue) }
         viewModelScope.launch {
-            supabase.from("shopping_items").update({
-                ShoppingItem::isPurchased setTo !item.isPurchased
-            }) { filter { ShoppingItem::id eq item.id } }
+            try {
+                supabase.from("shopping_items").update({
+                    ShoppingItem::isPurchased setTo newValue
+                }) { filter { ShoppingItem::id eq item.id } }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w("ShoppingListViewModel", "Failed to toggle purchased for item ${item.id}", e)
+                updateItemLocally(item.id) { it.copy(isPurchased = item.isPurchased) }
+            }
         }
     }
 
@@ -80,10 +97,19 @@ class ShoppingListViewModel : ViewModel() {
     }
 
     fun toggleImportant(item: ShoppingItem) {
+        val newValue = !item.isImportant
+        updateItemLocally(item.id) { it.copy(isImportant = newValue) }
         viewModelScope.launch {
-            supabase.from("shopping_items").update({
-                ShoppingItem::isImportant setTo !item.isImportant
-            }) { filter { ShoppingItem::id eq item.id } }
+            try {
+                supabase.from("shopping_items").update({
+                    ShoppingItem::isImportant setTo newValue
+                }) { filter { ShoppingItem::id eq item.id } }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w("ShoppingListViewModel", "Failed to toggle important for item ${item.id}", e)
+                updateItemLocally(item.id) { it.copy(isImportant = item.isImportant) }
+            }
         }
     }
 }

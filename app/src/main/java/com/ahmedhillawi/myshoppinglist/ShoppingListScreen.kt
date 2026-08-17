@@ -204,6 +204,17 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
                                     }
                                 }
                             )
+                            HorizontalDivider()
+                            DropdownMenuItem(
+                                enabled = false,
+                                text = {
+                                    Text(
+                                        text = "v${BuildConfig.VERSION_NAME} (${BuildConfig.BUILD_TIMESTAMP})",
+                                        style = MaterialTheme.typography.labelSmall
+                                    )
+                                },
+                                onClick = {}
+                            )
                         }
                     }
                 },
