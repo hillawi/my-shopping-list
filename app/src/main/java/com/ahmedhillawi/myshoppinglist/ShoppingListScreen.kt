@@ -368,18 +368,19 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
                             // Require a deliberate, near-full-width swipe so an errant drag
                             // while tapping the checkbox/star doesn't pop the delete dialog.
                             val dismissState = rememberSwipeToDismissBoxState(
-                                confirmValueChange = { dismissValue ->
-                                    if (dismissValue == SwipeToDismissBoxValue.EndToStart) {
-                                        itemToDelete = item // Triggers the AlertDialog
-                                        false // Don't let the item disappear until confirmed
-                                    } else false
-                                },
                                 positionalThreshold = { totalDistance -> totalDistance * 0.75f }
                             )
 
                             SwipeToDismissBox(
                                 state = dismissState,
                                 enableDismissFromStartToEnd = false,
+                                // onDismiss only fires once the swipe has settled (i.e. after
+                                // the thumb is released) — unlike confirmValueChange, which
+                                // fires live mid-drag and would pop the dialog too early.
+                                onDismiss = {
+                                    itemToDelete = item // Triggers the AlertDialog
+                                    scope.launch { dismissState.reset() }
+                                },
                                 backgroundContent = {
                                     val color = if (dismissState.dismissDirection != SwipeToDismissBoxValue.Settled) Color.Red else Color.Transparent
                                     Box(
