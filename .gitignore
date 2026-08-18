@@ -8,3 +8,11 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+.agents
+.claude
+.github
+.opencode
+CLAUDE.md
+_bmad
+_bmad-output
