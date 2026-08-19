@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.time.Instant
 
 // ViewModel is kept in memory by the Android OS until the screen is permanently closed.
 class ShoppingListViewModel : ViewModel() {
@@ -32,10 +33,10 @@ class ShoppingListViewModel : ViewModel() {
             .toSortedMap(compareBy { it.order })
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
-    // 2. History/Pantry Items (Flat list, A-Z)
+    // 2. History/Pantry Items (Flat list, most recently purchased first)
     val purchasedItems = _allItems.map { list ->
         list.filter { it.isPurchased }
-            .sortedBy { it.name }
+            .sortedByDescending { it.purchasedAt ?: "" }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     init {
@@ -73,17 +74,19 @@ class ShoppingListViewModel : ViewModel() {
 
     fun togglePurchased(item: ShoppingItem) {
         val newValue = !item.isPurchased
-        updateItemLocally(item.id) { it.copy(isPurchased = newValue) }
+        val newPurchasedAt = if (newValue) Instant.now().toString() else null
+        updateItemLocally(item.id) { it.copy(isPurchased = newValue, purchasedAt = newPurchasedAt) }
         viewModelScope.launch {
             try {
                 supabase.from("shopping_items").update({
                     ShoppingItem::isPurchased setTo newValue
+                    ShoppingItem::purchasedAt setTo newPurchasedAt
                 }) { filter { ShoppingItem::id eq item.id } }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 Log.w("ShoppingListViewModel", "Failed to toggle purchased for item ${item.id}", e)
-                updateItemLocally(item.id) { it.copy(isPurchased = item.isPurchased) }
+                updateItemLocally(item.id) { it.copy(isPurchased = item.isPurchased, purchasedAt = item.purchasedAt) }
             }
         }
     }

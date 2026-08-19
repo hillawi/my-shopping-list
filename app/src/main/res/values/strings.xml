@@ -7,6 +7,9 @@
     <string name="share_title">🛒 *My Shopping List*</string>
     <string name="last_updated">Last updated: %1$s</string>
     <string name="history_header">Recently Purchased</string>
+    <string name="search_purchased_hint">Search purchased items</string>
+    <string name="clear_search_description">Clear search</string>
+    <string name="no_purchased_items_match">No purchased items match \"%1$s\"</string>
     <string name="delete_title">Delete Item</string>
     <string name="delete_confirm">Permanently delete \'%1$s\'?</string>
     <string name="copied_toast">List copied to clipboard!</string>
