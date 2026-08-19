@@ -415,7 +415,7 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 HorizontalDivider(modifier = Modifier.weight(1f))
                                 Text(
-                                    "Recently Purchased",
+                                    stringResource(R.string.history_header),
                                     style = MaterialTheme.typography.labelMedium,
                                     color = Color.Gray,
                                     modifier = Modifier.padding(horizontal = 8.dp)
@@ -428,12 +428,12 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(top = 8.dp),
-                                placeholder = { Text("Search purchased items") },
+                                placeholder = { Text(stringResource(R.string.search_purchased_hint)) },
                                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                                 trailingIcon = {
                                     if (purchasedSearchQuery.isNotEmpty()) {
                                         IconButton(onClick = { purchasedSearchQuery = "" }) {
-                                            Icon(Icons.Default.Close, contentDescription = "Clear search")
+                                            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.clear_search_description))
                                         }
                                     }
                                 },
@@ -444,7 +444,7 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
                         if (filteredPurchasedItems.isEmpty()) {
                             item {
                                 Text(
-                                    "No purchased items match \"$purchasedSearchQuery\"",
+                                    stringResource(R.string.no_purchased_items_match, purchasedSearchQuery),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = Color.Gray,
                                     modifier = Modifier.padding(vertical = 16.dp)

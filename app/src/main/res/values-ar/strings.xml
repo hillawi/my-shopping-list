@@ -7,6 +7,9 @@
     <string name="share_title">🛒 *قائمة التسوق الخاصة بي*</string>
     <string name="last_updated">آخر تحديث: %1$s</string>
     <string name="history_header">تم شراؤه مؤخراً</string>
+    <string name="search_purchased_hint">البحث في المشتريات</string>
+    <string name="clear_search_description">مسح البحث</string>
+    <string name="no_purchased_items_match">لا توجد عناصر مشتراة تطابق \"%1$s\"</string>
     <string name="delete_title">حذف المنتج</string>
     <string name="delete_confirm">هل تريد حذف \'%1$s\' نهائياً؟</string>
     <string name="copied_toast">تم نسخ القائمة!</string>
