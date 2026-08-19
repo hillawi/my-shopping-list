@@ -8,7 +8,6 @@ import android.os.LocaleList
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -31,11 +30,12 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -46,8 +46,6 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
-import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
@@ -70,14 +68,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import com.ahmedhillawi.myshoppinglist.domain.MeasurementUnit
 import com.ahmedhillawi.myshoppinglist.domain.ShoppingCategory
@@ -138,8 +133,14 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
     var itemToDelete by remember { mutableStateOf<ShoppingItem?>(null) }
     var expanded by remember { mutableStateOf(false) }
     var selectedCategory by remember { mutableStateOf(ShoppingCategory.GENERAL) }
-
-    val haptic = LocalHapticFeedback.current
+    var purchasedSearchQuery by remember { mutableStateOf("") }
+    val filteredPurchasedItems = remember(purchasedItems, purchasedSearchQuery) {
+        if (purchasedSearchQuery.isBlank()) {
+            purchasedItems
+        } else {
+            purchasedItems.filter { it.name.contains(purchasedSearchQuery, ignoreCase = true) }
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -414,23 +415,77 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 HorizontalDivider(modifier = Modifier.weight(1f))
                                 Text(
-                                    "Recently Purchased",
+                                    stringResource(R.string.history_header),
                                     style = MaterialTheme.typography.labelMedium,
                                     color = Color.Gray,
                                     modifier = Modifier.padding(horizontal = 8.dp)
                                 )
                                 HorizontalDivider(modifier = Modifier.weight(1f))
                             }
+                            OutlinedTextField(
+                                value = purchasedSearchQuery,
+                                onValueChange = { purchasedSearchQuery = it },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 8.dp),
+                                placeholder = { Text(stringResource(R.string.search_purchased_hint)) },
+                                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                                trailingIcon = {
+                                    if (purchasedSearchQuery.isNotEmpty()) {
+                                        IconButton(onClick = { purchasedSearchQuery = "" }) {
+                                            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.clear_search_description))
+                                        }
+                                    }
+                                },
+                                singleLine = true
+                            )
                         }
 
-                        items(purchasedItems, key = { "history_${it.id}" }) { item ->
-                            PurchasedHistoryItem(
-                                item = item,
-                                onRestore = {
-                                    viewModel.togglePurchased(item)
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                }
+                        if (filteredPurchasedItems.isEmpty()) {
+                            item {
+                                Text(
+                                    stringResource(R.string.no_purchased_items_match, purchasedSearchQuery),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = Color.Gray,
+                                    modifier = Modifier.padding(vertical = 16.dp)
+                                )
+                            }
+                        }
+
+                        items(filteredPurchasedItems, key = { "history_${it.id}" }) { item ->
+                            val dismissState = rememberSwipeToDismissBoxState(
+                                positionalThreshold = { totalDistance -> totalDistance * 0.75f }
                             )
+
+                            SwipeToDismissBox(
+                                state = dismissState,
+                                enableDismissFromStartToEnd = false,
+                                onDismiss = {
+                                    itemToDelete = item // Triggers the AlertDialog
+                                    scope.launch { dismissState.reset() }
+                                },
+                                backgroundContent = {
+                                    val color = if (dismissState.dismissDirection != SwipeToDismissBoxValue.Settled) Color.Red else Color.Transparent
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .background(color)
+                                            .padding(horizontal = 20.dp),
+                                        contentAlignment = Alignment.CenterEnd
+                                    ) {
+                                        Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.White)
+                                    }
+                                }
+                            ) {
+                                Surface(color = MaterialTheme.colorScheme.surface) {
+                                    ShoppingListItem(
+                                        item = item,
+                                        onCheckedChange = { viewModel.togglePurchased(item) },
+                                        onImportantToggle = { viewModel.toggleImportant(item) }
+                                    )
+                                }
+                            }
+                            HorizontalDivider()
                         }
                     }
                 }
@@ -525,26 +580,6 @@ fun SwipeToDeleteItem(
     ) {
         Surface(color = MaterialTheme.colorScheme.surface) { content() }
     }
-}
-
-@Composable
-fun PurchasedHistoryItem(item: ShoppingItem, onRestore: () -> Unit) {
-    ListItem(
-        headlineContent = {
-            Text(
-                item.name,
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    textDecoration = TextDecoration.LineThrough,
-                    color = Color.Gray
-                )
-            )
-        },
-        leadingContent = {
-            Icon(Icons.Default.Refresh, contentDescription = "Restore", tint = Color.Gray)
-        },
-        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-        modifier = Modifier.clickable { onRestore() }
-    )
 }
 
 @Composable
