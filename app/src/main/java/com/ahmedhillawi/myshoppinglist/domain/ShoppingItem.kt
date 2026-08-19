@@ -14,6 +14,8 @@ data class ShoppingItem(
     val isPurchased: Boolean = false,
     @SerialName("created_at")
     val createdAt: String? = null,
+    @SerialName("purchased_at")
+    val purchasedAt: String? = null,
     @SerialName("user_email")
     val userEmail: String? = null,
     @SerialName("is_important")

@@ -31,11 +31,13 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -138,6 +140,14 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
     var itemToDelete by remember { mutableStateOf<ShoppingItem?>(null) }
     var expanded by remember { mutableStateOf(false) }
     var selectedCategory by remember { mutableStateOf(ShoppingCategory.GENERAL) }
+    var purchasedSearchQuery by remember { mutableStateOf("") }
+    val filteredPurchasedItems = remember(purchasedItems, purchasedSearchQuery) {
+        if (purchasedSearchQuery.isBlank()) {
+            purchasedItems
+        } else {
+            purchasedItems.filter { it.name.contains(purchasedSearchQuery, ignoreCase = true) }
+        }
+    }
 
     val haptic = LocalHapticFeedback.current
 
@@ -421,9 +431,37 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
                                 )
                                 HorizontalDivider(modifier = Modifier.weight(1f))
                             }
+                            OutlinedTextField(
+                                value = purchasedSearchQuery,
+                                onValueChange = { purchasedSearchQuery = it },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 8.dp),
+                                placeholder = { Text("Search purchased items") },
+                                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                                trailingIcon = {
+                                    if (purchasedSearchQuery.isNotEmpty()) {
+                                        IconButton(onClick = { purchasedSearchQuery = "" }) {
+                                            Icon(Icons.Default.Close, contentDescription = "Clear search")
+                                        }
+                                    }
+                                },
+                                singleLine = true
+                            )
                         }
 
-                        items(purchasedItems, key = { "history_${it.id}" }) { item ->
+                        if (filteredPurchasedItems.isEmpty()) {
+                            item {
+                                Text(
+                                    "No purchased items match \"$purchasedSearchQuery\"",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = Color.Gray,
+                                    modifier = Modifier.padding(vertical = 16.dp)
+                                )
+                            }
+                        }
+
+                        items(filteredPurchasedItems, key = { "history_${it.id}" }) { item ->
                             PurchasedHistoryItem(
                                 item = item,
                                 onRestore = {
