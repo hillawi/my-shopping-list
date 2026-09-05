@@ -91,6 +91,25 @@ class ShoppingListViewModel : ViewModel() {
         }
     }
 
+    fun renameItem(item: ShoppingItem, newName: String) {
+        val trimmedName = newName.trim()
+        if (trimmedName.isBlank() || trimmedName == item.name) return
+        val previousName = item.name
+        updateItemLocally(item.id) { it.copy(name = trimmedName) }
+        viewModelScope.launch {
+            try {
+                supabase.from("shopping_items").update({
+                    ShoppingItem::name setTo trimmedName
+                }) { filter { ShoppingItem::id eq item.id } }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w("ShoppingListViewModel", "Failed to rename item ${item.id}", e)
+                updateItemLocally(item.id) { it.copy(name = previousName) }
+            }
+        }
+    }
+
     fun removeItem(item: ShoppingItem) {
         viewModelScope.launch {
             supabase.from("shopping_items").delete {

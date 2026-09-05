@@ -4,6 +4,7 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Star
@@ -42,7 +43,8 @@ private const val StrikethroughDurationMillis = 550
 fun ShoppingListItem(
     item: ShoppingItem,
     onCheckedChange: (Boolean) -> Unit,
-    onImportantToggle: () -> Unit = {}
+    onImportantToggle: () -> Unit = {},
+    onRename: () -> Unit = {}
 ) {
     val haptic = LocalHapticFeedback.current
     val scope = rememberCoroutineScope()
@@ -54,6 +56,7 @@ fun ShoppingListItem(
     val displayAsPurchased = item.isPurchased || pendingChecked
 
     ListItem(
+        modifier = Modifier.clickable(onClick = onRename),
         headlineContent = {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 // Display quantity prominently if it's not the default "1"

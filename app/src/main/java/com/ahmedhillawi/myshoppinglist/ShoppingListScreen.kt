@@ -131,6 +131,8 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
     var itemName by remember { mutableStateOf("") }
     var itemQuantity by remember { mutableStateOf("1") }
     var itemToDelete by remember { mutableStateOf<ShoppingItem?>(null) }
+    var itemToRename by remember { mutableStateOf<ShoppingItem?>(null) }
+    var renameText by remember { mutableStateOf("") }
     var expanded by remember { mutableStateOf(false) }
     var selectedCategory by remember { mutableStateOf(ShoppingCategory.GENERAL) }
     var purchasedSearchQuery by remember { mutableStateOf("") }
@@ -400,7 +402,11 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
                                     ShoppingListItem(
                                         item = item,
                                         onCheckedChange = { viewModel.togglePurchased(item) },
-                                        onImportantToggle = { viewModel.toggleImportant(item) }
+                                        onImportantToggle = { viewModel.toggleImportant(item) },
+                                        onRename = {
+                                            itemToRename = item
+                                            renameText = item.name
+                                        }
                                     )
                                 }
                             }
@@ -481,7 +487,11 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
                                     ShoppingListItem(
                                         item = item,
                                         onCheckedChange = { viewModel.togglePurchased(item) },
-                                        onImportantToggle = { viewModel.toggleImportant(item) }
+                                        onImportantToggle = { viewModel.toggleImportant(item) },
+                                        onRename = {
+                                            itemToRename = item
+                                            renameText = item.name
+                                        }
                                     )
                                 }
                             }
@@ -505,6 +515,41 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
                     },
                     dismissButton = {
                         TextButton(onClick = { itemToDelete = null }) { Text("Cancel") }
+                    }
+                )
+            }
+
+            // Rename Dialog
+            itemToRename?.let { item ->
+                AlertDialog(
+                    onDismissRequest = { itemToRename = null },
+                    title = { Text(stringResource(R.string.rename_title)) },
+                    text = {
+                        OutlinedTextField(
+                            value = renameText,
+                            onValueChange = { renameText = it },
+                            label = { Text(stringResource(R.string.item_name_label)) },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                            keyboardActions = KeyboardActions(onDone = {
+                                if (renameText.isNotBlank()) {
+                                    viewModel.renameItem(item, renameText)
+                                    itemToRename = null
+                                }
+                            })
+                        )
+                    },
+                    confirmButton = {
+                        TextButton(
+                            enabled = renameText.isNotBlank(),
+                            onClick = {
+                                viewModel.renameItem(item, renameText)
+                                itemToRename = null
+                            }
+                        ) { Text(stringResource(R.string.save_button)) }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { itemToRename = null }) { Text(stringResource(R.string.cancel_button)) }
                     }
                 )
             }
