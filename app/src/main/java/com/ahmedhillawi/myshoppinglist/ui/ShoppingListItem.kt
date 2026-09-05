@@ -44,7 +44,7 @@ fun ShoppingListItem(
     item: ShoppingItem,
     onCheckedChange: (Boolean) -> Unit,
     onImportantToggle: () -> Unit = {},
-    onRename: () -> Unit = {}
+    onEdit: () -> Unit = {}
 ) {
     val haptic = LocalHapticFeedback.current
     val scope = rememberCoroutineScope()
@@ -56,7 +56,7 @@ fun ShoppingListItem(
     val displayAsPurchased = item.isPurchased || pendingChecked
 
     ListItem(
-        modifier = Modifier.clickable(onClick = onRename),
+        modifier = Modifier.clickable(onClick = onEdit),
         headlineContent = {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 // Display quantity prominently if it's not the default "1"

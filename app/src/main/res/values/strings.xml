@@ -12,7 +12,7 @@
     <string name="no_purchased_items_match">No purchased items match \"%1$s\"</string>
     <string name="delete_title">Delete Item</string>
     <string name="delete_confirm">Permanently delete \'%1$s\'?</string>
-    <string name="rename_title">Rename Item</string>
+    <string name="edit_title">Edit Item</string>
     <string name="save_button">Save</string>
     <string name="cancel_button">Cancel</string>
     <string name="copied_toast">List copied to clipboard!</string>

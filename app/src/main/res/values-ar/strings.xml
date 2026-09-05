@@ -12,7 +12,7 @@
     <string name="no_purchased_items_match">لا توجد عناصر مشتراة تطابق \"%1$s\"</string>
     <string name="delete_title">حذف المنتج</string>
     <string name="delete_confirm">هل تريد حذف \'%1$s\' نهائياً؟</string>
-    <string name="rename_title">تعديل اسم المنتج</string>
+    <string name="edit_title">تعديل المنتج</string>
     <string name="save_button">حفظ</string>
     <string name="cancel_button">إلغاء</string>
     <string name="copied_toast">تم نسخ القائمة!</string>
