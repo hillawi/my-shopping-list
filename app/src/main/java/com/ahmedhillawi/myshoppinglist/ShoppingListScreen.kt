@@ -415,7 +415,9 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
                                             editUnit = item.unit
                                             editCategory = ShoppingCategory.fromString(item.category)
                                             editCategoryExpanded = false
-                                        }
+                                        },
+                                        onIncrementQuantity = { viewModel.adjustQuantity(item, increase = true) },
+                                        onDecrementQuantity = { viewModel.adjustQuantity(item, increase = false) }
                                     )
                                 }
                             }
@@ -504,7 +506,9 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
                                             editUnit = item.unit
                                             editCategory = ShoppingCategory.fromString(item.category)
                                             editCategoryExpanded = false
-                                        }
+                                        },
+                                        onIncrementQuantity = { viewModel.adjustQuantity(item, increase = true) },
+                                        onDecrementQuantity = { viewModel.adjustQuantity(item, increase = false) }
                                     )
                                 }
                             }

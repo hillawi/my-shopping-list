@@ -125,6 +125,18 @@ class ShoppingListViewModel : ViewModel() {
         }
     }
 
+    fun adjustQuantity(item: ShoppingItem, increase: Boolean) {
+        val current = item.quantity.trim().toDoubleOrNull() ?: return
+        val step = item.unit.step
+        val target = (if (increase) current + step else current - step).coerceAtLeast(step)
+        updateItem(item, item.name, formatQuantity(target), item.unit, ShoppingCategory.fromString(item.category))
+    }
+
+    private fun formatQuantity(value: Double): String {
+        val oneDecimal = "%.1f".format(value)
+        return if (oneDecimal.endsWith(".0")) oneDecimal.dropLast(2) else oneDecimal
+    }
+
     fun removeItem(item: ShoppingItem) {
         viewModelScope.launch {
             supabase.from("shopping_items").delete {
