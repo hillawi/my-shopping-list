@@ -4,7 +4,7 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.Star
@@ -22,15 +22,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.ahmedhillawi.myshoppinglist.domain.ShoppingItem
 import kotlinx.coroutines.delay
@@ -42,7 +41,8 @@ private const val StrikethroughDurationMillis = 550
 fun ShoppingListItem(
     item: ShoppingItem,
     onCheckedChange: (Boolean) -> Unit,
-    onImportantToggle: () -> Unit = {}
+    onImportantToggle: () -> Unit = {},
+    onEdit: () -> Unit = {}
 ) {
     val haptic = LocalHapticFeedback.current
     val scope = rememberCoroutineScope()
@@ -54,28 +54,25 @@ fun ShoppingListItem(
     val displayAsPurchased = item.isPurchased || pendingChecked
 
     ListItem(
+        modifier = Modifier.clickable(onClick = onEdit),
         headlineContent = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                // Display quantity prominently if it's not the default "1"
-                if (item.quantity != "1") {
-                    val quantityColor by animateColorAsState(
-                        targetValue = if (displayAsPurchased) Color.Gray else MaterialTheme.colorScheme.primary,
-                        animationSpec = tween(StrikethroughDurationMillis),
-                        label = "quantityColor"
-                    )
-                    Text(
-                        text = "${item.quantity} ",
-                        fontWeight = FontWeight.Bold,
-                        color = quantityColor,
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                }
-                StrikethroughText(
-                    text = item.name,
-                    struckThrough = displayAsPurchased,
-                    style = MaterialTheme.typography.bodyLarge
-                )
-            }
+            StrikethroughText(
+                text = item.name,
+                struckThrough = displayAsPurchased,
+                style = MaterialTheme.typography.bodyLarge
+            )
+        },
+        supportingContent = {
+            val quantityColor by animateColorAsState(
+                targetValue = if (displayAsPurchased) Color.Gray else MaterialTheme.colorScheme.primary,
+                animationSpec = tween(StrikethroughDurationMillis),
+                label = "quantityColor"
+            )
+            Text(
+                text = "${item.quantity} ${stringResource(item.unit.resId)}",
+                color = quantityColor,
+                style = MaterialTheme.typography.bodyMedium
+            )
         },
         leadingContent = {
             Checkbox(

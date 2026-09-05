@@ -91,6 +91,40 @@ class ShoppingListViewModel : ViewModel() {
         }
     }
 
+    fun updateItem(
+        item: ShoppingItem,
+        newName: String,
+        newQuantity: String,
+        newUnit: MeasurementUnit,
+        newCategory: ShoppingCategory
+    ) {
+        val trimmedName = newName.trim()
+        if (trimmedName.isBlank()) return
+        val trimmedQuantity = newQuantity.ifBlank { "1" }
+        if (trimmedName == item.name && trimmedQuantity == item.quantity &&
+            newUnit == item.unit && newCategory.name == item.category
+        ) return
+        val previous = item
+        updateItemLocally(item.id) {
+            it.copy(name = trimmedName, quantity = trimmedQuantity, unit = newUnit, category = newCategory.name)
+        }
+        viewModelScope.launch {
+            try {
+                supabase.from("shopping_items").update({
+                    ShoppingItem::name setTo trimmedName
+                    ShoppingItem::quantity setTo trimmedQuantity
+                    ShoppingItem::unit setTo newUnit
+                    ShoppingItem::category setTo newCategory.name
+                }) { filter { ShoppingItem::id eq item.id } }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w("ShoppingListViewModel", "Failed to update item ${item.id}", e)
+                updateItemLocally(item.id) { previous }
+            }
+        }
+    }
+
     fun removeItem(item: ShoppingItem) {
         viewModelScope.launch {
             supabase.from("shopping_items").delete {
