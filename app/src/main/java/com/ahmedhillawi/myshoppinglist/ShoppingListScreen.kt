@@ -73,6 +73,7 @@ import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ahmedhillawi.myshoppinglist.domain.MeasurementUnit
 import com.ahmedhillawi.myshoppinglist.domain.ShoppingCategory
@@ -131,6 +132,12 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
     var itemName by remember { mutableStateOf("") }
     var itemQuantity by remember { mutableStateOf("1") }
     var itemToDelete by remember { mutableStateOf<ShoppingItem?>(null) }
+    var itemToEdit by remember { mutableStateOf<ShoppingItem?>(null) }
+    var editName by remember { mutableStateOf("") }
+    var editQuantity by remember { mutableStateOf("1") }
+    var editUnit by remember { mutableStateOf(MeasurementUnit.PCS) }
+    var editCategory by remember { mutableStateOf(ShoppingCategory.GENERAL) }
+    var editCategoryExpanded by remember { mutableStateOf(false) }
     var expanded by remember { mutableStateOf(false) }
     var selectedCategory by remember { mutableStateOf(ShoppingCategory.GENERAL) }
     var purchasedSearchQuery by remember { mutableStateOf("") }
@@ -400,7 +407,15 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
                                     ShoppingListItem(
                                         item = item,
                                         onCheckedChange = { viewModel.togglePurchased(item) },
-                                        onImportantToggle = { viewModel.toggleImportant(item) }
+                                        onImportantToggle = { viewModel.toggleImportant(item) },
+                                        onEdit = {
+                                            itemToEdit = item
+                                            editName = item.name
+                                            editQuantity = item.quantity
+                                            editUnit = item.unit
+                                            editCategory = ShoppingCategory.fromString(item.category)
+                                            editCategoryExpanded = false
+                                        }
                                     )
                                 }
                             }
@@ -481,7 +496,15 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
                                     ShoppingListItem(
                                         item = item,
                                         onCheckedChange = { viewModel.togglePurchased(item) },
-                                        onImportantToggle = { viewModel.toggleImportant(item) }
+                                        onImportantToggle = { viewModel.toggleImportant(item) },
+                                        onEdit = {
+                                            itemToEdit = item
+                                            editName = item.name
+                                            editQuantity = item.quantity
+                                            editUnit = item.unit
+                                            editCategory = ShoppingCategory.fromString(item.category)
+                                            editCategoryExpanded = false
+                                        }
                                     )
                                 }
                             }
@@ -505,6 +528,103 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
                     },
                     dismissButton = {
                         TextButton(onClick = { itemToDelete = null }) { Text("Cancel") }
+                    }
+                )
+            }
+
+            // Edit Item Dialog
+            itemToEdit?.let { item ->
+                AlertDialog(
+                    onDismissRequest = { itemToEdit = null },
+                    title = { Text(stringResource(R.string.edit_title)) },
+                    text = {
+                        Column {
+                            OutlinedTextField(
+                                value = editName,
+                                onValueChange = { editName = it },
+                                modifier = Modifier.fillMaxWidth(),
+                                label = { Text(stringResource(R.string.item_name_label)) },
+                                singleLine = true
+                            )
+
+                            Spacer(Modifier.height(8.dp))
+
+                            OutlinedTextField(
+                                value = editQuantity,
+                                onValueChange = { editQuantity = it },
+                                modifier = Modifier.width(120.dp),
+                                label = { Text(stringResource(R.string.qty_label)) },
+                                singleLine = true
+                            )
+
+                            Spacer(Modifier.height(8.dp))
+
+                            Box(modifier = Modifier.fillMaxWidth()) {
+                                OutlinedCard(
+                                    onClick = { editCategoryExpanded = true },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(56.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .padding(horizontal = 12.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(editCategory.icon, null, modifier = Modifier.size(20.dp))
+                                        Spacer(Modifier.width(8.dp))
+                                        Text(
+                                            text = stringResource(editCategory.resId),
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                }
+                                DropdownMenu(
+                                    expanded = editCategoryExpanded,
+                                    onDismissRequest = { editCategoryExpanded = false }
+                                ) {
+                                    ShoppingCategory.entries.forEach { cat ->
+                                        DropdownMenuItem(
+                                            text = {
+                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                                    Icon(cat.icon, null, modifier = Modifier.size(18.dp))
+                                                    Spacer(Modifier.width(12.dp))
+                                                    Text(stringResource(cat.resId))
+                                                }
+                                            },
+                                            onClick = {
+                                                editCategory = cat
+                                                editCategoryExpanded = false
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+
+                            Spacer(Modifier.height(12.dp))
+
+                            Text(
+                                text = stringResource(R.string.unit_label),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = Color.Gray
+                            )
+                            Spacer(Modifier.height(4.dp))
+                            UnitSelector(selectedUnit = editUnit, onUnitSelected = { editUnit = it })
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(
+                            enabled = editName.isNotBlank(),
+                            onClick = {
+                                viewModel.updateItem(item, editName, editQuantity, editUnit, editCategory)
+                                itemToEdit = null
+                            }
+                        ) { Text(stringResource(R.string.save_button)) }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { itemToEdit = null }) { Text(stringResource(R.string.cancel_button)) }
                     }
                 )
             }
