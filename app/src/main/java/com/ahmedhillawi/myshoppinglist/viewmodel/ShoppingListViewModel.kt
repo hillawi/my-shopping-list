@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.Instant
+import java.util.Locale
 
 // ViewModel is kept in memory by the Android OS until the screen is permanently closed.
 class ShoppingListViewModel : ViewModel() {
@@ -133,7 +134,7 @@ class ShoppingListViewModel : ViewModel() {
     }
 
     private fun formatQuantity(value: Double): String {
-        val oneDecimal = "%.1f".format(value)
+        val oneDecimal = "%.1f".format(Locale.US, value)
         return if (oneDecimal.endsWith(".0")) oneDecimal.dropLast(2) else oneDecimal
     }
 
