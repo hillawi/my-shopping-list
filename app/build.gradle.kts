@@ -1,5 +1,6 @@
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
@@ -25,6 +26,8 @@ android {
         versionName = "1.0.4"
 
         buildConfigField("String", "BUILD_TIMESTAMP", "\"$buildTimestamp\"")
+        buildConfigField("String", "SUPABASE_URL", "\"https://comxreruiurkxjawwkie.supabase.co\"")
+        buildConfigField("String", "SUPABASE_ANON_KEY", "\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNvbXhyZXJ1aXVya3hqYXd3a2llIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgwMzAwMzksImV4cCI6MjA4MzYwNjAzOX0.Pa-viBl4bIDoPUPPgcY__t375smzjCg8FY1t2lsldRg\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -36,6 +39,23 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+        }
+        debug {
+            // Points at `supabase start` (local Docker stack) so debug builds never touch
+            // production data. Override host/key per machine in local.properties (gitignored) —
+            // see README/CLAUDE.md for the local.supabase.* keys. Defaults to the emulator's
+            // loopback alias; a physical phone needs the dev machine's LAN IP instead.
+            val localProps = Properties().apply {
+                val f = rootProject.file("local.properties")
+                if (f.exists()) f.inputStream().use { load(it) }
+            }
+            val localUrl = localProps.getProperty("local.supabase.url", "http://10.0.2.2:54321")
+            val localAnonKey = localProps.getProperty(
+                "local.supabase.anonKey",
+                "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0"
+            )
+            buildConfigField("String", "SUPABASE_URL", "\"$localUrl\"")
+            buildConfigField("String", "SUPABASE_ANON_KEY", "\"$localAnonKey\"")
         }
     }
     compileOptions {

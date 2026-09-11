@@ -68,6 +68,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.Clipboard
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
@@ -75,6 +76,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.ahmedhillawi.myshoppinglist.domain.Household
 import com.ahmedhillawi.myshoppinglist.domain.MeasurementUnit
 import com.ahmedhillawi.myshoppinglist.domain.ShoppingCategory
 import com.ahmedhillawi.myshoppinglist.domain.ShoppingItem
@@ -87,7 +89,7 @@ import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
+fun ShoppingListScreen(viewModel: ShoppingListViewModel, household: Household) {
     val activeItems by viewModel.activeItems.collectAsState()
     val purchasedItems by viewModel.purchasedItems.collectAsState()
 
@@ -115,17 +117,18 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
 
     val copyToClipboard = {
         val textToCopy = generateShareText(context, activeItems)
-
         scope.launch {
-            try {
-                val clipEntry = ClipEntry(
-                    ClipData.newPlainText("Shopping List", textToCopy)
-                )
-                clipboard.setClipEntry(clipEntry)
-                Toast.makeText(context, context.getString(R.string.copied_toast), Toast.LENGTH_SHORT).show()
-            } catch (e: Exception) {
-                Toast.makeText(context, "Failed to copy list", Toast.LENGTH_SHORT).show()
-            }
+            val copied = copyPlainTextToClipboard(clipboard, "Shopping List", textToCopy)
+            val messageRes = if (copied) R.string.copied_toast else R.string.copy_failed_toast
+            Toast.makeText(context, context.getString(messageRes), Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    val copyInviteCode = {
+        scope.launch {
+            val copied = copyPlainTextToClipboard(clipboard, "Household Invite Code", household.inviteCode.orEmpty())
+            val messageRes = if (copied) R.string.invite_code_copied_toast else R.string.copy_failed_toast
+            Toast.makeText(context, context.getString(messageRes), Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -181,6 +184,25 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
                             expanded = menuExpanded,
                             onDismissRequest = { menuExpanded = false }
                         ) {
+                            DropdownMenuItem(
+                                enabled = false,
+                                text = {
+                                    Text(
+                                        text = stringResource(R.string.household_name_display, household.name),
+                                        style = MaterialTheme.typography.labelMedium
+                                    )
+                                },
+                                onClick = {}
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.copy_invite_code)) },
+                                leadingIcon = { Icon(Icons.Default.ContentCopy, contentDescription = null) },
+                                onClick = {
+                                    copyInviteCode()
+                                    menuExpanded = false
+                                }
+                            )
+                            HorizontalDivider()
                             // Inside your TopAppBar actions:
                             val localeManager = context.getSystemService(LocaleManager::class.java)
                             // 1. Get current language tag
@@ -635,6 +657,14 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
         }
     }
 }
+
+private suspend fun copyPlainTextToClipboard(clipboard: Clipboard, label: String, text: String): Boolean =
+    try {
+        clipboard.setClipEntry(ClipEntry(ClipData.newPlainText(label, text)))
+        true
+    } catch (e: Exception) {
+        false
+    }
 
 fun generateShareText(
     context: Context,

@@ -16,6 +16,7 @@
     <string name="save_button">حفظ</string>
     <string name="cancel_button">إلغاء</string>
     <string name="copied_toast">تم نسخ القائمة!</string>
+    <string name="copy_failed_toast">فشل النسخ إلى الحافظة</string>
     <string name="empty_list_message">قائمتك فارغة حاليًا</string>
     <!-- Categories -->
     <string name="cat_general">عام</string>
@@ -41,4 +42,18 @@
     <string name="create_account">إنشاء حساب</string>
     <string name="sign_in">تسجيل دخول</string>
     <string name="lang_button_label">العربية</string>
+    <!-- Household onboarding -->
+    <string name="household_onboarding_title">إعداد المنزل</string>
+    <string name="household_onboarding_subtitle">أنشئ قائمة مشتركة جديدة، أو انضم إلى واحدة برمز الدعوة.</string>
+    <string name="household_name_label">اسم المنزل</string>
+    <string name="create_household_button">إنشاء منزل</string>
+    <string name="join_household_instead">الانضمام إلى منزل موجود بدلاً من ذلك</string>
+    <string name="invite_code_label">رمز الدعوة</string>
+    <string name="join_household_button">انضمام</string>
+    <string name="create_household_instead">إنشاء منزل جديد بدلاً من ذلك</string>
+    <string name="invalid_invite_code_error">رمز الدعوة هذا لا يطابق أي منزل.</string>
+    <string name="household_generic_error">حدث خطأ ما. حاول مرة أخرى.</string>
+    <string name="copy_invite_code">نسخ رمز الدعوة</string>
+    <string name="invite_code_copied_toast">تم نسخ رمز الدعوة!</string>
+    <string name="household_name_display">المنزل: %1$s</string>
 </resources>
