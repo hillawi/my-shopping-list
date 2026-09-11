@@ -16,6 +16,7 @@
     <string name="save_button">Save</string>
     <string name="cancel_button">Cancel</string>
     <string name="copied_toast">List copied to clipboard!</string>
+    <string name="copy_failed_toast">Failed to copy to clipboard</string>
     <string name="empty_list_message">Your list is currently empty</string>
     <!-- Categories -->
     <string name="cat_general">General</string>
@@ -41,4 +42,18 @@
     <string name="create_account">Create Account</string>
     <string name="sign_in">Sign In</string>
     <string name="lang_button_label">English</string>
+    <!-- Household onboarding -->
+    <string name="household_onboarding_title">Set up your household</string>
+    <string name="household_onboarding_subtitle">Create a new shared list, or join one with an invite code.</string>
+    <string name="household_name_label">Household name</string>
+    <string name="create_household_button">Create household</string>
+    <string name="join_household_instead">Join an existing household instead</string>
+    <string name="invite_code_label">Invite code</string>
+    <string name="join_household_button">Join household</string>
+    <string name="create_household_instead">Create a new household instead</string>
+    <string name="invalid_invite_code_error">That invite code doesn\'t match any household.</string>
+    <string name="household_generic_error">Something went wrong. Please try again.</string>
+    <string name="copy_invite_code">Copy invite code</string>
+    <string name="invite_code_copied_toast">Invite code copied!</string>
+    <string name="household_name_display">Household: %1$s</string>
 </resources>
