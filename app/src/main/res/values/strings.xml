@@ -1,5 +1,14 @@
 <resources>
     <string name="app_name">MyShoppingList</string>
+    <string name="email_label">Email *</string>
+    <string name="password_label">Password *</string>
+    <string name="auth_missing_fields_error">Please enter both email and password.</string>
+    <string name="account_created_check_email">Account created! Check your email.</string>
+    <string name="auth_user_already_exists_error">An account with this email already exists. Try signing in instead.</string>
+    <string name="auth_invalid_credentials_error">Incorrect email or password. Please try again.</string>
+    <string name="auth_weak_password_error">Password is too weak. It must be at least 6 characters long.</string>
+    <string name="auth_email_invalid_error">This email can\'t be used. Check it\'s correct, or try signing in if you already have an account.</string>
+    <string name="auth_generic_error">Something went wrong. Please try again.</string>
     <string name="logout">Logout</string>
     <string name="item_name_label">Item Name</string>
     <string name="qty_label">Qty</string>

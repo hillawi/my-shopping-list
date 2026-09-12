@@ -1,7 +1,9 @@
 package com.ahmedhillawi.myshoppinglist.ui
 
 import android.app.LocaleManager
+import android.content.Context
 import android.os.LocaleList
+import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -34,8 +36,28 @@ import androidx.compose.ui.unit.dp
 import com.ahmedhillawi.myshoppinglist.R
 import com.ahmedhillawi.myshoppinglist.supabase
 import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.auth.exception.AuthErrorCode
+import io.github.jan.supabase.auth.exception.AuthRestException
 import io.github.jan.supabase.auth.providers.builtin.Email
 import kotlinx.coroutines.launch
+
+// Maps a caught auth exception to a user-facing message, so a raw technical error (a Postgrest/
+// GoTrue error code or a network exception's message) never reaches the screen. The original
+// exception is still logged for debugging. New known cases can be added to the `when` below;
+// anything else — including non-AuthRestException failures like a network error — falls back to
+// a single generic message.
+private fun resolveAuthErrorMessage(context: Context, e: Exception): String {
+    Log.w("LoginScreen", "Auth request failed", e)
+    return when ((e as? AuthRestException)?.errorCode) {
+        AuthErrorCode.UserAlreadyExists -> context.getString(R.string.auth_user_already_exists_error)
+        AuthErrorCode.InvalidCredentials -> context.getString(R.string.auth_invalid_credentials_error)
+        AuthErrorCode.WeakPassword -> context.getString(R.string.auth_weak_password_error)
+        // Also returned by production for a pre-existing but never-confirmed account, not just
+        // placeholder domains like @example.com — worded to cover both without claiming either.
+        AuthErrorCode.EmailAddressInvalid -> context.getString(R.string.auth_email_invalid_error)
+        else -> context.getString(R.string.auth_generic_error)
+    }
+}
 
 @Composable
 fun LoginScreen() {
@@ -43,6 +65,7 @@ fun LoginScreen() {
     var password by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
     var message by remember { mutableStateOf("") }
+    var showValidationError by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
@@ -79,7 +102,8 @@ fun LoginScreen() {
             OutlinedTextField(
                 value = email,
                 onValueChange = { email = it },
-                label = { Text("Email") },
+                label = { Text(stringResource(R.string.email_label)) },
+                isError = showValidationError && email.isBlank(),
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -88,7 +112,8 @@ fun LoginScreen() {
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it },
-                label = { Text("Password") },
+                label = { Text(stringResource(R.string.password_label)) },
+                isError = showValidationError && password.isBlank(),
                 modifier = Modifier.fillMaxWidth(),
                 visualTransformation = PasswordVisualTransformation()
             )
@@ -102,6 +127,16 @@ fun LoginScreen() {
 
             Button(
                 onClick = {
+                    // Supabase's own validation only kicks in once a request is sent — with both
+                    // fields blank it reads as an anonymous sign-in attempt and comes back as an
+                    // opaque "anonymous_provider_disabled" error, so this is checked upfront
+                    // instead of surfacing that raw message to the user.
+                    if (email.isBlank() || password.isBlank()) {
+                        showValidationError = true
+                        message = context.getString(R.string.auth_missing_fields_error)
+                        return@Button
+                    }
+                    showValidationError = false
                     scope.launch {
                         isLoading = true
                         try {
@@ -111,7 +146,7 @@ fun LoginScreen() {
                             }
                             // No need to navigate manually; MainActivity observes the session change
                         } catch (e: Exception) {
-                            message = "Error: ${e.message}"
+                            message = resolveAuthErrorMessage(context, e)
                         } finally {
                             isLoading = false
                         }
@@ -125,14 +160,22 @@ fun LoginScreen() {
 
             // Sign Up Button
             TextButton(onClick = {
+                if (email.isBlank() || password.isBlank()) {
+                    showValidationError = true
+                    message = context.getString(R.string.auth_missing_fields_error)
+                    return@TextButton
+                }
+                showValidationError = false
                 scope.launch {
                     try {
                         supabase.auth.signUpWith(Email) {
                             this.email = email
                             this.password = password
                         }
-                        message = "Account created! Check your email."
-                    } catch(e: Exception) { message = e.message ?: "Error" }
+                        message = context.getString(R.string.account_created_check_email)
+                    } catch (e: Exception) {
+                        message = resolveAuthErrorMessage(context, e)
+                    }
                 }
             }) {
                 Text(stringResource(R.string.create_account))
