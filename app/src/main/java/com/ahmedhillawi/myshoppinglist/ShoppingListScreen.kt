@@ -35,6 +35,7 @@ import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
@@ -108,7 +109,7 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel, household: Household) {
     val shareList = {
         val sendIntent: Intent = Intent().apply {
             action = Intent.ACTION_SEND
-            putExtra(Intent.EXTRA_TEXT, generateShareText(context, activeItems))
+            putExtra(Intent.EXTRA_TEXT, generateShareText(context, activeItems, household.name))
             type = "text/plain"
         }
         val shareIntent = Intent.createChooser(sendIntent, null)
@@ -116,7 +117,7 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel, household: Household) {
     }
 
     val copyToClipboard = {
-        val textToCopy = generateShareText(context, activeItems)
+        val textToCopy = generateShareText(context, activeItems, household.name)
         scope.launch {
             val copied = copyPlainTextToClipboard(clipboard, "Shopping List", textToCopy)
             val messageRes = if (copied) R.string.copied_toast else R.string.copy_failed_toast
@@ -136,6 +137,7 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel, household: Household) {
     var itemQuantity by remember { mutableStateOf("1") }
     var itemToDelete by remember { mutableStateOf<ShoppingItem?>(null) }
     var itemToEdit by remember { mutableStateOf<ShoppingItem?>(null) }
+    var showAccountDialog by remember { mutableStateOf(false) }
     var editName by remember { mutableStateOf("") }
     var editQuantity by remember { mutableStateOf("1") }
     var editUnit by remember { mutableStateOf(MeasurementUnit.PCS) }
@@ -155,7 +157,12 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel, household: Household) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.app_name)) },
+                title = {
+                    Column {
+                        Text(stringResource(R.string.app_name))
+                        Text(household.name, style = MaterialTheme.typography.labelMedium)
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
@@ -185,16 +192,6 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel, household: Household) {
                             onDismissRequest = { menuExpanded = false }
                         ) {
                             DropdownMenuItem(
-                                enabled = false,
-                                text = {
-                                    Text(
-                                        text = stringResource(R.string.household_name_display, household.name),
-                                        style = MaterialTheme.typography.labelMedium
-                                    )
-                                },
-                                onClick = {}
-                            )
-                            DropdownMenuItem(
                                 text = { Text(stringResource(R.string.copy_invite_code)) },
                                 leadingIcon = { Icon(Icons.Default.ContentCopy, contentDescription = null) },
                                 onClick = {
@@ -223,6 +220,14 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel, household: Household) {
                                     val newTag = if (currentTag.contains("ar")) "en" else "ar"
                                     // 4. Apply the new locale (This triggers Activity recreation automatically!)
                                     localeManager.applicationLocales = LocaleList.forLanguageTags(newTag)
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.account_menu_item)) },
+                                leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
+                                onClick = {
+                                    showAccountDialog = true
+                                    menuExpanded = false
                                 }
                             )
                             DropdownMenuItem(
@@ -654,6 +659,28 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel, household: Household) {
                     }
                 )
             }
+
+            // Account details — read-only for now; editing details and account deletion are
+            // planned follow-ups, not built here since there's nothing yet to wire them to.
+            if (showAccountDialog) {
+                AlertDialog(
+                    onDismissRequest = { showAccountDialog = false },
+                    title = { Text(stringResource(R.string.account_details_title)) },
+                    text = {
+                        Column {
+                            val email = supabase.auth.currentUserOrNull()?.email.orEmpty()
+                            Text(stringResource(R.string.account_email_label, email))
+                            Spacer(modifier = Modifier.height(8.dp))
+                            // A user belongs to exactly one household at a time (household_members.user_id
+                            // is the primary key — see CLAUDE.md), so this shows a single household, not a list.
+                            Text(stringResource(R.string.account_household_label, household.name))
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(onClick = { showAccountDialog = false }) { Text(stringResource(R.string.close_button)) }
+                    }
+                )
+            }
         }
     }
 }
@@ -668,7 +695,8 @@ private suspend fun copyPlainTextToClipboard(clipboard: Clipboard, label: String
 
 fun generateShareText(
     context: Context,
-    activeItems: Map<ShoppingCategory, List<ShoppingItem>>): String {
+    activeItems: Map<ShoppingCategory, List<ShoppingItem>>,
+    householdName: String): String {
     if (activeItems.isEmpty()) return context.getString(R.string.empty_list_message)
 
     return buildString {
@@ -690,6 +718,7 @@ fun generateShareText(
         }
 
         appendLine("\n-------------------------")
+        appendLine(context.getString(R.string.account_household_label, householdName))
         appendLine(context.getString(R.string.last_updated, getFormattedTimestamp(context)))
     }
 }

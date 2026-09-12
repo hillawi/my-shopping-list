@@ -10,6 +10,11 @@
     <string name="auth_email_invalid_error">لا يمكن استخدام هذا البريد الإلكتروني. تحقق من صحته، أو حاول تسجيل الدخول إذا كان لديك حساب بالفعل.</string>
     <string name="auth_generic_error">حدث خطأ ما. حاول مرة أخرى.</string>
     <string name="logout">تسجيل خروج</string>
+    <string name="account_menu_item">الحساب</string>
+    <string name="account_details_title">تفاصيل الحساب</string>
+    <string name="account_email_label">البريد الإلكتروني: %1$s</string>
+    <string name="account_household_label">المنزل: %1$s</string>
+    <string name="close_button">إغلاق</string>
     <string name="item_name_label">اسم المنتج</string>
     <string name="qty_label">الكمية</string>
     <string name="add_button">إضافة</string>
@@ -64,5 +69,4 @@
     <string name="household_generic_error">حدث خطأ ما. حاول مرة أخرى.</string>
     <string name="copy_invite_code">نسخ رمز الدعوة</string>
     <string name="invite_code_copied_toast">تم نسخ رمز الدعوة!</string>
-    <string name="household_name_display">المنزل: %1$s</string>
 </resources>
