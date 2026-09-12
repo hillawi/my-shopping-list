@@ -34,6 +34,8 @@ import androidx.compose.ui.unit.dp
 import com.ahmedhillawi.myshoppinglist.R
 import com.ahmedhillawi.myshoppinglist.supabase
 import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.auth.exception.AuthErrorCode
+import io.github.jan.supabase.auth.exception.AuthRestException
 import io.github.jan.supabase.auth.providers.builtin.Email
 import kotlinx.coroutines.launch
 
@@ -154,6 +156,15 @@ fun LoginScreen() {
                             this.password = password
                         }
                         message = context.getString(R.string.account_created_check_email)
+                    } catch (e: AuthRestException) {
+                        message = when (e.errorCode) {
+                            AuthErrorCode.UserAlreadyExists ->
+                                context.getString(R.string.auth_user_already_exists_error)
+                            else -> context.getString(
+                                R.string.auth_error_prefix,
+                                e.message ?: context.getString(R.string.unknown_error)
+                            )
+                        }
                     } catch (e: Exception) {
                         message = context.getString(
                             R.string.auth_error_prefix,

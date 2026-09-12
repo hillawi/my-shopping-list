@@ -6,6 +6,7 @@
     <string name="account_created_check_email">تم إنشاء الحساب! تحقق من بريدك الإلكتروني.</string>
     <string name="auth_error_prefix">خطأ: %1$s</string>
     <string name="unknown_error">خطأ غير معروف</string>
+    <string name="auth_user_already_exists_error">يوجد حساب بهذا البريد الإلكتروني بالفعل. حاول تسجيل الدخول بدلاً من ذلك.</string>
     <string name="logout">تسجيل خروج</string>
     <string name="item_name_label">اسم المنتج</string>
     <string name="qty_label">الكمية</string>

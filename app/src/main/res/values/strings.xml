@@ -6,6 +6,7 @@
     <string name="account_created_check_email">Account created! Check your email.</string>
     <string name="auth_error_prefix">Error: %1$s</string>
     <string name="unknown_error">Unknown error</string>
+    <string name="auth_user_already_exists_error">An account with this email already exists. Try signing in instead.</string>
     <string name="logout">Logout</string>
     <string name="item_name_label">Item Name</string>
     <string name="qty_label">Qty</string>
