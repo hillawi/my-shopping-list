@@ -22,8 +22,8 @@ android {
         applicationId = "com.ahmedhillawi.myshoppinglist"
         minSdk = 34
         targetSdk = 36
-        versionCode = 5
-        versionName = "1.0.4"
+        versionCode = 6
+        versionName = "1.1.0"
 
         buildConfigField("String", "BUILD_TIMESTAMP", "\"$buildTimestamp\"")
         buildConfigField("String", "SUPABASE_URL", "\"https://comxreruiurkxjawwkie.supabase.co\"")
