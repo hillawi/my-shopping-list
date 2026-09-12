@@ -383,7 +383,7 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel, household: Household) {
                             },
                             modifier = Modifier.height(56.dp)
                         ) {
-                            Text("Add")
+                            Text(stringResource(R.string.add_button))
                         }
                     }
                 }
