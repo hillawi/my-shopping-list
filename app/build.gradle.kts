@@ -43,7 +43,7 @@ android {
         debug {
             // Points at `supabase start` (local Docker stack) so debug builds never touch
             // production data. Override host/key per machine in local.properties (gitignored) —
-            // see README/CLAUDE.md for the local.supabase.* keys. Defaults to the emulator's
+            // see README.md for the local.supabase.* keys. Defaults to the emulator's
             // loopback alias; a physical phone needs the dev machine's LAN IP instead.
             val localProps = Properties().apply {
                 val f = rootProject.file("local.properties")

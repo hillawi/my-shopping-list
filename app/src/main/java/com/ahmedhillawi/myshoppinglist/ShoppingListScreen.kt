@@ -672,7 +672,7 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel, household: Household) {
                             Text(stringResource(R.string.account_email_label, email))
                             Spacer(modifier = Modifier.height(8.dp))
                             // A user belongs to exactly one household at a time (household_members.user_id
-                            // is the primary key — see CLAUDE.md), so this shows a single household, not a list.
+                            // is the primary key), so this shows a single household, not a list.
                             Text(stringResource(R.string.account_household_label, household.name))
                         }
                     },

@@ -1,6 +1,6 @@
 -- Local dev schema for MyShoppingList, reconstructed to mirror production
 -- (production has no tracked migrations; SQL is run manually via the Supabase
--- SQL editor per CLAUDE.md). This file exists only under supabase/migrations
+-- SQL editor). This file exists only under supabase/migrations
 -- for the local Docker stack and is NOT applied to the production project.
 
 create type measurement_unit as enum ('PACK', 'ML', 'L', 'G', 'KG', 'PCS');
