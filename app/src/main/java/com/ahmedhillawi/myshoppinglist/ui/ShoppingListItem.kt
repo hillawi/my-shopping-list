@@ -5,7 +5,11 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material3.Checkbox
@@ -22,6 +26,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
@@ -42,7 +47,9 @@ fun ShoppingListItem(
     item: ShoppingItem,
     onCheckedChange: (Boolean) -> Unit,
     onImportantToggle: () -> Unit = {},
-    onEdit: () -> Unit = {}
+    onEdit: () -> Unit = {},
+    onIncrementQuantity: () -> Unit = {},
+    onDecrementQuantity: () -> Unit = {}
 ) {
     val haptic = LocalHapticFeedback.current
     val scope = rememberCoroutineScope()
@@ -68,11 +75,45 @@ fun ShoppingListItem(
                 animationSpec = tween(StrikethroughDurationMillis),
                 label = "quantityColor"
             )
-            Text(
-                text = "${item.quantity} ${stringResource(item.unit.resId)}",
-                color = quantityColor,
-                style = MaterialTheme.typography.bodyMedium
-            )
+            val quantityText = "${item.quantity} ${stringResource(item.unit.resId)}"
+            // Only numeric quantities can be stepped; free-text values (e.g. "2-3") just show as-is.
+            if (item.quantity.trim().toDoubleOrNull() != null) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(
+                        onClick = onDecrementQuantity,
+                        modifier = Modifier.size(28.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Remove,
+                            contentDescription = "Decrease quantity",
+                            tint = quantityColor,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                    Text(
+                        text = quantityText,
+                        color = quantityColor,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    IconButton(
+                        onClick = onIncrementQuantity,
+                        modifier = Modifier.size(28.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = "Increase quantity",
+                            tint = quantityColor,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+            } else {
+                Text(
+                    text = quantityText,
+                    color = quantityColor,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
         },
         leadingContent = {
             Checkbox(

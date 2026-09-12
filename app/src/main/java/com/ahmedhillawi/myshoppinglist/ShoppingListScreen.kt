@@ -35,6 +35,7 @@ import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
@@ -68,6 +69,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.Clipboard
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
@@ -75,6 +77,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.ahmedhillawi.myshoppinglist.domain.Household
 import com.ahmedhillawi.myshoppinglist.domain.MeasurementUnit
 import com.ahmedhillawi.myshoppinglist.domain.ShoppingCategory
 import com.ahmedhillawi.myshoppinglist.domain.ShoppingItem
@@ -87,7 +90,7 @@ import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
+fun ShoppingListScreen(viewModel: ShoppingListViewModel, household: Household) {
     val activeItems by viewModel.activeItems.collectAsState()
     val purchasedItems by viewModel.purchasedItems.collectAsState()
 
@@ -106,7 +109,7 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
     val shareList = {
         val sendIntent: Intent = Intent().apply {
             action = Intent.ACTION_SEND
-            putExtra(Intent.EXTRA_TEXT, generateShareText(context, activeItems))
+            putExtra(Intent.EXTRA_TEXT, generateShareText(context, activeItems, household.name))
             type = "text/plain"
         }
         val shareIntent = Intent.createChooser(sendIntent, null)
@@ -114,18 +117,19 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
     }
 
     val copyToClipboard = {
-        val textToCopy = generateShareText(context, activeItems)
-
+        val textToCopy = generateShareText(context, activeItems, household.name)
         scope.launch {
-            try {
-                val clipEntry = ClipEntry(
-                    ClipData.newPlainText("Shopping List", textToCopy)
-                )
-                clipboard.setClipEntry(clipEntry)
-                Toast.makeText(context, context.getString(R.string.copied_toast), Toast.LENGTH_SHORT).show()
-            } catch (e: Exception) {
-                Toast.makeText(context, "Failed to copy list", Toast.LENGTH_SHORT).show()
-            }
+            val copied = copyPlainTextToClipboard(clipboard, "Shopping List", textToCopy)
+            val messageRes = if (copied) R.string.copied_toast else R.string.copy_failed_toast
+            Toast.makeText(context, context.getString(messageRes), Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    val copyInviteCode = {
+        scope.launch {
+            val copied = copyPlainTextToClipboard(clipboard, "Household Invite Code", household.inviteCode.orEmpty())
+            val messageRes = if (copied) R.string.invite_code_copied_toast else R.string.copy_failed_toast
+            Toast.makeText(context, context.getString(messageRes), Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -133,6 +137,7 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
     var itemQuantity by remember { mutableStateOf("1") }
     var itemToDelete by remember { mutableStateOf<ShoppingItem?>(null) }
     var itemToEdit by remember { mutableStateOf<ShoppingItem?>(null) }
+    var showAccountDialog by remember { mutableStateOf(false) }
     var editName by remember { mutableStateOf("") }
     var editQuantity by remember { mutableStateOf("1") }
     var editUnit by remember { mutableStateOf(MeasurementUnit.PCS) }
@@ -152,7 +157,12 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.app_name)) },
+                title = {
+                    Column {
+                        Text(stringResource(R.string.app_name))
+                        Text(household.name, style = MaterialTheme.typography.labelMedium)
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
@@ -181,6 +191,15 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
                             expanded = menuExpanded,
                             onDismissRequest = { menuExpanded = false }
                         ) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.copy_invite_code)) },
+                                leadingIcon = { Icon(Icons.Default.ContentCopy, contentDescription = null) },
+                                onClick = {
+                                    copyInviteCode()
+                                    menuExpanded = false
+                                }
+                            )
+                            HorizontalDivider()
                             // Inside your TopAppBar actions:
                             val localeManager = context.getSystemService(LocaleManager::class.java)
                             // 1. Get current language tag
@@ -201,6 +220,14 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
                                     val newTag = if (currentTag.contains("ar")) "en" else "ar"
                                     // 4. Apply the new locale (This triggers Activity recreation automatically!)
                                     localeManager.applicationLocales = LocaleList.forLanguageTags(newTag)
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.account_menu_item)) },
+                                leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
+                                onClick = {
+                                    showAccountDialog = true
+                                    menuExpanded = false
                                 }
                             )
                             DropdownMenuItem(
@@ -356,7 +383,7 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
                             },
                             modifier = Modifier.height(56.dp)
                         ) {
-                            Text("Add")
+                            Text(stringResource(R.string.add_button))
                         }
                     }
                 }
@@ -415,7 +442,9 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
                                             editUnit = item.unit
                                             editCategory = ShoppingCategory.fromString(item.category)
                                             editCategoryExpanded = false
-                                        }
+                                        },
+                                        onIncrementQuantity = { viewModel.adjustQuantity(item, increase = true) },
+                                        onDecrementQuantity = { viewModel.adjustQuantity(item, increase = false) }
                                     )
                                 }
                             }
@@ -504,7 +533,9 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
                                             editUnit = item.unit
                                             editCategory = ShoppingCategory.fromString(item.category)
                                             editCategoryExpanded = false
-                                        }
+                                        },
+                                        onIncrementQuantity = { viewModel.adjustQuantity(item, increase = true) },
+                                        onDecrementQuantity = { viewModel.adjustQuantity(item, increase = false) }
                                     )
                                 }
                             }
@@ -628,13 +659,44 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel) {
                     }
                 )
             }
+
+            // Account details — read-only for now; editing details and account deletion are
+            // planned follow-ups, not built here since there's nothing yet to wire them to.
+            if (showAccountDialog) {
+                AlertDialog(
+                    onDismissRequest = { showAccountDialog = false },
+                    title = { Text(stringResource(R.string.account_details_title)) },
+                    text = {
+                        Column {
+                            val email = supabase.auth.currentUserOrNull()?.email.orEmpty()
+                            Text(stringResource(R.string.account_email_label, email))
+                            Spacer(modifier = Modifier.height(8.dp))
+                            // A user belongs to exactly one household at a time (household_members.user_id
+                            // is the primary key), so this shows a single household, not a list.
+                            Text(stringResource(R.string.account_household_label, household.name))
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(onClick = { showAccountDialog = false }) { Text(stringResource(R.string.close_button)) }
+                    }
+                )
+            }
         }
     }
 }
 
+private suspend fun copyPlainTextToClipboard(clipboard: Clipboard, label: String, text: String): Boolean =
+    try {
+        clipboard.setClipEntry(ClipEntry(ClipData.newPlainText(label, text)))
+        true
+    } catch (e: Exception) {
+        false
+    }
+
 fun generateShareText(
     context: Context,
-    activeItems: Map<ShoppingCategory, List<ShoppingItem>>): String {
+    activeItems: Map<ShoppingCategory, List<ShoppingItem>>,
+    householdName: String): String {
     if (activeItems.isEmpty()) return context.getString(R.string.empty_list_message)
 
     return buildString {
@@ -656,6 +718,7 @@ fun generateShareText(
         }
 
         appendLine("\n-------------------------")
+        appendLine(context.getString(R.string.account_household_label, householdName))
         appendLine(context.getString(R.string.last_updated, getFormattedTimestamp(context)))
     }
 }

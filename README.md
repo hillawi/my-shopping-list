@@ -44,9 +44,38 @@ app/src/main/java/com/ahmedhillawi/myshoppinglist/
 └── SupabaseClient.kt
 ```
 
+## Email Confirmation Flow
+
+Signing up sends a confirmation email whose link points at Supabase's own Auth server, not the
+app — e.g. `https://<project>.supabase.co/auth/v1/verify?token=...&type=signup&redirect_to=myshoppinglist://login-callback`.
+Tapping it does the following, in order:
+
+1. The device's browser sends a plain HTTP GET to that URL, straight to Supabase's servers.
+2. Supabase validates the token **server-side** and, if valid, marks the account's email as
+   confirmed in its database. This step happens entirely on Supabase's backend — nothing in this
+   app performs the confirmation itself.
+3. Supabase responds with an HTTP redirect (not a webpage) to
+   `myshoppinglist://login-callback#access_token=...&refresh_token=...&type=signup` — the
+   confirmed session's tokens, attached to our custom URL scheme.
+4. The browser follows that redirect; since no browser can "open" a custom scheme, Android hands
+   it to this app via the `myshoppinglist://login-callback` intent-filter declared in
+   `AndroidManifest.xml` on `MainActivity` (`launchMode="singleTask"` so a warm app reuses the
+   existing instance via `onNewIntent` instead of stacking a second one).
+5. Only at this point does app code run: `MainActivity.handleAuthDeeplink()` calls
+   `supabase.handleDeeplinks(intent, ...)`, which parses the already-valid tokens out of the URL
+   fragment and stores them as the active session — so confirming an email signs the user in
+   directly, instead of landing on a dead page and requiring a separate manual sign-in.
+
+`SupabaseClient.kt` configures the `Auth` plugin's `scheme`/`host` to `myshoppinglist`/
+`login-callback` to match; `handleDeeplinks()` silently no-ops (no exception, no log) if an
+incoming URI's scheme/host don't exactly match this config, so keep the three in sync if either
+ever changes: the manifest's intent-filter, this Auth config, and Supabase's Site URL
+(Authentication → URL Configuration in the Dashboard for production; `auth.site_url` in
+`supabase/config.toml` for local dev).
+
 ## Status
 
-Version 1.0.0 — first release, currently running in production.
+Version 1.1.0 — running in production.
 
 ## Contributing
 
@@ -58,4 +87,9 @@ Version 1.0.0 — first release, currently running in production.
 
 ## License
 
-MIT — see [LICENSE](LICENSE). Free to use, copy, and modify.
+MIT, plus the [Commons Clause](https://commonsclause.com/) condition and an additional app-store
+distribution condition — see [LICENSE](LICENSE). Free to use, copy, modify, and distribute.
+Selling the software (or a service substantially derived from it), or publishing it or a
+derivative on any app marketplace or store — including the Google Play Store or Apple App
+Store — requires the copyright holder's prior formal written approval, whether or not it's
+offered free of charge.
