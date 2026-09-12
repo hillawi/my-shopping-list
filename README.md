@@ -87,4 +87,7 @@ Version 1.0.0 — first release, currently running in production.
 
 ## License
 
-MIT — see [LICENSE](LICENSE). Free to use, copy, and modify.
+Source-available — see [LICENSE](LICENSE). Free to use, copy, and modify for personal, educational,
+or internal purposes. Selling the software, or publishing it (or a derivative) on any app
+marketplace or store — including the Google Play Store or Apple App Store — requires the
+copyright holder's prior formal written approval, whether or not it's offered free of charge.
