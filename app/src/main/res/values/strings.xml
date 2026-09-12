@@ -10,6 +10,11 @@
     <string name="auth_email_invalid_error">This email can\'t be used. Check it\'s correct, or try signing in if you already have an account.</string>
     <string name="auth_generic_error">Something went wrong. Please try again.</string>
     <string name="logout">Logout</string>
+    <string name="account_menu_item">Account</string>
+    <string name="account_details_title">Account details</string>
+    <string name="account_email_label">Email: %1$s</string>
+    <string name="account_household_label">Household: %1$s</string>
+    <string name="close_button">Close</string>
     <string name="item_name_label">Item Name</string>
     <string name="qty_label">Qty</string>
     <string name="add_button">Add</string>
@@ -64,5 +69,4 @@
     <string name="household_generic_error">Something went wrong. Please try again.</string>
     <string name="copy_invite_code">Copy invite code</string>
     <string name="invite_code_copied_toast">Invite code copied!</string>
-    <string name="household_name_display">Household: %1$s</string>
 </resources>
