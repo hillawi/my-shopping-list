@@ -1,6 +1,8 @@
 package com.ahmedhillawi.myshoppinglist
 
+import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -22,6 +24,7 @@ import com.ahmedhillawi.myshoppinglist.ui.theme.MyShoppingListTheme
 import com.ahmedhillawi.myshoppinglist.viewmodel.HouseholdViewModel
 import com.ahmedhillawi.myshoppinglist.viewmodel.ShoppingListViewModel
 import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.auth.handleDeeplinks
 import io.github.jan.supabase.auth.status.SessionStatus
 
 class MainActivity : ComponentActivity() {
@@ -30,6 +33,7 @@ class MainActivity : ComponentActivity() {
 
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        handleAuthDeeplink(intent)
 
         splashScreen.setKeepOnScreenCondition {
             val currentStatus = supabase.auth.sessionStatus.value
@@ -84,5 +88,26 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    // singleTask (see AndroidManifest.xml) routes a deep link to the already-running instance
+    // here instead of creating a new one.
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleAuthDeeplink(intent)
+    }
+
+    // Supabase's email confirmation link redirects to myshoppinglist://login-callback with the
+    // session tokens attached — the confirmation itself already happened server-side by this
+    // point, this just picks up the resulting session so the user lands signed in instead of
+    // having to sign in manually. No-ops for any intent that isn't this redirect (e.g. the normal
+    // launcher intent), so it's safe to call unconditionally.
+    private fun handleAuthDeeplink(intent: Intent) {
+        supabase.handleDeeplinks(
+            intent,
+            onSessionSuccess = { Log.i("MainActivity", "Session established from auth deeplink") },
+            onError = { e -> Log.w("MainActivity", "Failed to handle auth deeplink", e) }
+        )
     }
 }

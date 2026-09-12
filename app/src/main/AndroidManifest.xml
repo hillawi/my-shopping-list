@@ -16,12 +16,26 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:launchMode="singleTask"
             android:theme="@style/Theme.MyShoppingList"
             android:configChanges="layoutDirection">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!-- Supabase Auth's email redirect target (Site URL) — used after confirming a
+                 signup, and would apply to any other auth email action (magic link, password
+                 recovery) if those are added later. singleTask above keeps this from stacking a
+                 second MainActivity instance when the app is already running. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data android:scheme="myshoppinglist" android:host="login-callback" />
             </intent-filter>
         </activity>
     </application>
