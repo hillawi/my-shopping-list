@@ -4,9 +4,10 @@
     <string name="password_label">كلمة المرور *</string>
     <string name="auth_missing_fields_error">الرجاء إدخال البريد الإلكتروني وكلمة المرور.</string>
     <string name="account_created_check_email">تم إنشاء الحساب! تحقق من بريدك الإلكتروني.</string>
-    <string name="auth_error_prefix">خطأ: %1$s</string>
-    <string name="unknown_error">خطأ غير معروف</string>
     <string name="auth_user_already_exists_error">يوجد حساب بهذا البريد الإلكتروني بالفعل. حاول تسجيل الدخول بدلاً من ذلك.</string>
+    <string name="auth_invalid_credentials_error">البريد الإلكتروني أو كلمة المرور غير صحيحة. حاول مرة أخرى.</string>
+    <string name="auth_weak_password_error">كلمة المرور ضعيفة جداً. يجب أن تتكون من 6 أحرف على الأقل.</string>
+    <string name="auth_generic_error">حدث خطأ ما. حاول مرة أخرى.</string>
     <string name="logout">تسجيل خروج</string>
     <string name="item_name_label">اسم المنتج</string>
     <string name="qty_label">الكمية</string>

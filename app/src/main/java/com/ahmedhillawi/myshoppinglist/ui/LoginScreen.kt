@@ -1,7 +1,9 @@
 package com.ahmedhillawi.myshoppinglist.ui
 
 import android.app.LocaleManager
+import android.content.Context
 import android.os.LocaleList
+import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -38,6 +40,21 @@ import io.github.jan.supabase.auth.exception.AuthErrorCode
 import io.github.jan.supabase.auth.exception.AuthRestException
 import io.github.jan.supabase.auth.providers.builtin.Email
 import kotlinx.coroutines.launch
+
+// Maps a caught auth exception to a user-facing message, so a raw technical error (a Postgrest/
+// GoTrue error code or a network exception's message) never reaches the screen. The original
+// exception is still logged for debugging. New known cases can be added to the `when` below;
+// anything else — including non-AuthRestException failures like a network error — falls back to
+// a single generic message.
+private fun resolveAuthErrorMessage(context: Context, e: Exception): String {
+    Log.w("LoginScreen", "Auth request failed", e)
+    return when ((e as? AuthRestException)?.errorCode) {
+        AuthErrorCode.UserAlreadyExists -> context.getString(R.string.auth_user_already_exists_error)
+        AuthErrorCode.InvalidCredentials -> context.getString(R.string.auth_invalid_credentials_error)
+        AuthErrorCode.WeakPassword -> context.getString(R.string.auth_weak_password_error)
+        else -> context.getString(R.string.auth_generic_error)
+    }
+}
 
 @Composable
 fun LoginScreen() {
@@ -126,10 +143,7 @@ fun LoginScreen() {
                             }
                             // No need to navigate manually; MainActivity observes the session change
                         } catch (e: Exception) {
-                            message = context.getString(
-                                R.string.auth_error_prefix,
-                                e.message ?: context.getString(R.string.unknown_error)
-                            )
+                            message = resolveAuthErrorMessage(context, e)
                         } finally {
                             isLoading = false
                         }
@@ -156,20 +170,8 @@ fun LoginScreen() {
                             this.password = password
                         }
                         message = context.getString(R.string.account_created_check_email)
-                    } catch (e: AuthRestException) {
-                        message = when (e.errorCode) {
-                            AuthErrorCode.UserAlreadyExists ->
-                                context.getString(R.string.auth_user_already_exists_error)
-                            else -> context.getString(
-                                R.string.auth_error_prefix,
-                                e.message ?: context.getString(R.string.unknown_error)
-                            )
-                        }
                     } catch (e: Exception) {
-                        message = context.getString(
-                            R.string.auth_error_prefix,
-                            e.message ?: context.getString(R.string.unknown_error)
-                        )
+                        message = resolveAuthErrorMessage(context, e)
                     }
                 }
             }) {
