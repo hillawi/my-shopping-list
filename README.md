@@ -87,4 +87,9 @@ Version 1.0.0 — first release, currently running in production.
 
 ## License
 
-MIT — see [LICENSE](LICENSE). Free to use, copy, and modify.
+MIT, plus the [Commons Clause](https://commonsclause.com/) condition and an additional app-store
+distribution condition — see [LICENSE](LICENSE). Free to use, copy, modify, and distribute.
+Selling the software (or a service substantially derived from it), or publishing it or a
+derivative on any app marketplace or store — including the Google Play Store or Apple App
+Store — requires the copyright holder's prior formal written approval, whether or not it's
+offered free of charge.
