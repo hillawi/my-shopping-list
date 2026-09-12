@@ -1,5 +1,11 @@
 <resources>
     <string name="app_name">قائمة تسوقي</string>
+    <string name="email_label">البريد الإلكتروني *</string>
+    <string name="password_label">كلمة المرور *</string>
+    <string name="auth_missing_fields_error">الرجاء إدخال البريد الإلكتروني وكلمة المرور.</string>
+    <string name="account_created_check_email">تم إنشاء الحساب! تحقق من بريدك الإلكتروني.</string>
+    <string name="auth_error_prefix">خطأ: %1$s</string>
+    <string name="unknown_error">خطأ غير معروف</string>
     <string name="logout">تسجيل خروج</string>
     <string name="item_name_label">اسم المنتج</string>
     <string name="qty_label">الكمية</string>

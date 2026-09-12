@@ -43,6 +43,7 @@ fun LoginScreen() {
     var password by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
     var message by remember { mutableStateOf("") }
+    var showValidationError by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
@@ -79,7 +80,8 @@ fun LoginScreen() {
             OutlinedTextField(
                 value = email,
                 onValueChange = { email = it },
-                label = { Text("Email") },
+                label = { Text(stringResource(R.string.email_label)) },
+                isError = showValidationError && email.isBlank(),
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -88,7 +90,8 @@ fun LoginScreen() {
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it },
-                label = { Text("Password") },
+                label = { Text(stringResource(R.string.password_label)) },
+                isError = showValidationError && password.isBlank(),
                 modifier = Modifier.fillMaxWidth(),
                 visualTransformation = PasswordVisualTransformation()
             )
@@ -102,6 +105,16 @@ fun LoginScreen() {
 
             Button(
                 onClick = {
+                    // Supabase's own validation only kicks in once a request is sent — with both
+                    // fields blank it reads as an anonymous sign-in attempt and comes back as an
+                    // opaque "anonymous_provider_disabled" error, so this is checked upfront
+                    // instead of surfacing that raw message to the user.
+                    if (email.isBlank() || password.isBlank()) {
+                        showValidationError = true
+                        message = context.getString(R.string.auth_missing_fields_error)
+                        return@Button
+                    }
+                    showValidationError = false
                     scope.launch {
                         isLoading = true
                         try {
@@ -111,7 +124,10 @@ fun LoginScreen() {
                             }
                             // No need to navigate manually; MainActivity observes the session change
                         } catch (e: Exception) {
-                            message = "Error: ${e.message}"
+                            message = context.getString(
+                                R.string.auth_error_prefix,
+                                e.message ?: context.getString(R.string.unknown_error)
+                            )
                         } finally {
                             isLoading = false
                         }
@@ -125,14 +141,25 @@ fun LoginScreen() {
 
             // Sign Up Button
             TextButton(onClick = {
+                if (email.isBlank() || password.isBlank()) {
+                    showValidationError = true
+                    message = context.getString(R.string.auth_missing_fields_error)
+                    return@TextButton
+                }
+                showValidationError = false
                 scope.launch {
                     try {
                         supabase.auth.signUpWith(Email) {
                             this.email = email
                             this.password = password
                         }
-                        message = "Account created! Check your email."
-                    } catch(e: Exception) { message = e.message ?: "Error" }
+                        message = context.getString(R.string.account_created_check_email)
+                    } catch (e: Exception) {
+                        message = context.getString(
+                            R.string.auth_error_prefix,
+                            e.message ?: context.getString(R.string.unknown_error)
+                        )
+                    }
                 }
             }) {
                 Text(stringResource(R.string.create_account))
