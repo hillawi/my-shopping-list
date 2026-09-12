@@ -1,7 +1,7 @@
 -- Households: per-account shared shopping lists — PRODUCTION migration.
 --
 -- Run this manually via the Supabase SQL editor against the production project
--- (production has no tracked migrations — see CLAUDE.md "Git workflow"). This is
+-- (production has no tracked migrations "Git workflow"). This is
 -- NOT picked up by `supabase start`/`supabase db reset`: those only read files
 -- under supabase/migrations/, which mirror this same end-state for local dev.
 --
@@ -19,8 +19,7 @@
 --      with the others — they'll start a fresh list, not see old items.
 --   2. Review the DO block that drops shopping_items' old single-column
 --      `unique(name)` constraint and its old permissive RLS policies below
---      before running, in case production's shopping_items has been customized
---      beyond what CLAUDE.md describes.
+--      before running, in case production's shopping_items has been customized.
 
 -- ── households / household_members ──────────────────────────────────────────
 
