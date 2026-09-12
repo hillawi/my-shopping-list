@@ -13,5 +13,12 @@ val supabase = createSupabaseClient(
     httpEngine = OkHttp.create()
     install(Postgrest)
     install(Realtime)
-    install(Auth)
+    install(Auth) {
+        // Must match the myshoppinglist://login-callback intent-filter in AndroidManifest.xml
+        // and the Site URL configured in Supabase Auth — handleDeeplinks() in MainActivity
+        // compares the incoming redirect's scheme/host against these and silently no-ops
+        // otherwise, so a mismatch here fails invisibly (no exception, no log).
+        scheme = "myshoppinglist"
+        host = "login-callback"
+    }
 }
