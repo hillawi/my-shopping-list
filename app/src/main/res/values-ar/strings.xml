@@ -7,6 +7,7 @@
     <string name="auth_user_already_exists_error">يوجد حساب بهذا البريد الإلكتروني بالفعل. حاول تسجيل الدخول بدلاً من ذلك.</string>
     <string name="auth_invalid_credentials_error">البريد الإلكتروني أو كلمة المرور غير صحيحة. حاول مرة أخرى.</string>
     <string name="auth_weak_password_error">كلمة المرور ضعيفة جداً. يجب أن تتكون من 6 أحرف على الأقل.</string>
+    <string name="auth_email_invalid_error">لا يمكن استخدام هذا البريد الإلكتروني. تحقق من صحته، أو حاول تسجيل الدخول إذا كان لديك حساب بالفعل.</string>
     <string name="auth_generic_error">حدث خطأ ما. حاول مرة أخرى.</string>
     <string name="logout">تسجيل خروج</string>
     <string name="item_name_label">اسم المنتج</string>

@@ -52,6 +52,9 @@ private fun resolveAuthErrorMessage(context: Context, e: Exception): String {
         AuthErrorCode.UserAlreadyExists -> context.getString(R.string.auth_user_already_exists_error)
         AuthErrorCode.InvalidCredentials -> context.getString(R.string.auth_invalid_credentials_error)
         AuthErrorCode.WeakPassword -> context.getString(R.string.auth_weak_password_error)
+        // Also returned by production for a pre-existing but never-confirmed account, not just
+        // placeholder domains like @example.com — worded to cover both without claiming either.
+        AuthErrorCode.EmailAddressInvalid -> context.getString(R.string.auth_email_invalid_error)
         else -> context.getString(R.string.auth_generic_error)
     }
 }
