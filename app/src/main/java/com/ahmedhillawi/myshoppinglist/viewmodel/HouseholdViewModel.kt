@@ -7,6 +7,7 @@ import com.ahmedhillawi.myshoppinglist.domain.Household
 import com.ahmedhillawi.myshoppinglist.domain.HouseholdMember
 import com.ahmedhillawi.myshoppinglist.supabase
 import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.postgrest.exception.PostgrestRestException
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.rpc
@@ -18,7 +19,14 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-enum class HouseholdError { INVALID_CODE, GENERIC }
+enum class HouseholdError { INVALID_CODE, GENERIC, MEMBER_LIMIT_REACHED }
+
+// Postgres error code for an RLS policy violation — surfaced here specifically because the
+// household_members insert policy enforces the plan's member cap (see
+// supabase/migrations/20260913000000_household_plans.sql). The only other condition that policy
+// checks (user_id = auth.uid()) is always true here since userId is set from the current session,
+// so a 42501 at this call site means the cap, not some other permission issue.
+private const val POSTGRES_RLS_VIOLATION_CODE = "42501"
 
 @Serializable
 private data class InviteCodeParams(@SerialName("p_code") val code: String)
@@ -126,6 +134,13 @@ class HouseholdViewModel : ViewModel() {
                 _household.value = fetchHousehold(found.id) ?: found
             } catch (e: CancellationException) {
                 throw e
+            } catch (e: PostgrestRestException) {
+                Log.w("HouseholdViewModel", "Failed to join household", e)
+                _error.value = if (e.code == POSTGRES_RLS_VIOLATION_CODE) {
+                    HouseholdError.MEMBER_LIMIT_REACHED
+                } else {
+                    HouseholdError.GENERIC
+                }
             } catch (e: Exception) {
                 Log.w("HouseholdViewModel", "Failed to join household", e)
                 _error.value = HouseholdError.GENERIC

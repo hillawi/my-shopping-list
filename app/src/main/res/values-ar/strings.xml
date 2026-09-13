@@ -66,7 +66,11 @@
     <string name="join_household_button">انضمام</string>
     <string name="create_household_instead">إنشاء منزل جديد بدلاً من ذلك</string>
     <string name="invalid_invite_code_error">رمز الدعوة هذا لا يطابق أي منزل.</string>
+    <string name="household_member_limit_error">وصل هذا المنزل إلى الحد الأقصى للأعضاء. اطلب من المالك الترقية لإضافة المزيد من الأعضاء.</string>
     <string name="household_generic_error">حدث خطأ ما. حاول مرة أخرى.</string>
     <string name="copy_invite_code">نسخ رمز الدعوة</string>
     <string name="invite_code_copied_toast">تم نسخ رمز الدعوة!</string>
+    <string name="account_plan_label">الخطة: %1$s</string>
+    <string name="plan_free">مجانية</string>
+    <string name="plan_paid">مدفوعة</string>
 </resources>

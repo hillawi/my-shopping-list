@@ -101,6 +101,7 @@ fun HouseholdOnboardingScreen(viewModel: HouseholdViewModel) {
             Text(
                 text = when (it) {
                     HouseholdError.INVALID_CODE -> stringResource(R.string.invalid_invite_code_error)
+                    HouseholdError.MEMBER_LIMIT_REACHED -> stringResource(R.string.household_member_limit_error)
                     HouseholdError.GENERIC -> stringResource(R.string.household_generic_error)
                 },
                 color = MaterialTheme.colorScheme.error
