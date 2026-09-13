@@ -3,10 +3,10 @@
 --
 -- Mirrors supabase/migrations/20260913000002_household_item_cap.sql (local dev).
 --
--- Hard safety cap: at most 1000 distinct items per household, regardless of plan. This is
+-- Hard safety cap: at most 100 distinct items per household, regardless of plan. This is
 -- abuse/bug protection (unbounded row growth), not a monetization lever — flat across free and
 -- paid. shopping_items has a unique(household_id, name) constraint and the app always upserts on
--- (household_id, name), so this is really "1000 distinct item names ever used by a household",
+-- (household_id, name), so this is really "100 distinct item names ever used by a household",
 -- far above what any real household needs.
 --
 -- Deliberately a BEFORE INSERT trigger, not a condition on the existing shopping_items RLS
@@ -23,7 +23,7 @@ begin
     select 1 from shopping_items
     where household_id = new.household_id and name = new.name
   ) then
-    if (select count(*) from shopping_items where household_id = new.household_id) >= 1000 then
+    if (select count(*) from shopping_items where household_id = new.household_id) >= 100 then
       raise exception 'household_item_limit_reached' using errcode = 'P0001';
     end if;
   end if;
