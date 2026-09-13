@@ -74,4 +74,9 @@
     <string name="account_member_count_label">الأعضاء: %1$d / %2$d</string>
     <string name="plan_free">مجانية</string>
     <string name="plan_paid">مدفوعة</string>
+    <string name="delete_account_button">حذف الحساب</string>
+    <string name="delete_account_title">حذف الحساب</string>
+    <string name="delete_account_confirm_owner">سيؤدي هذا إلى حذف منزلك \'%1$s\' وجميع منتجاته نهائياً لجميع الأعضاء. لا يمكن التراجع عن هذا الإجراء.</string>
+    <string name="delete_account_confirm_member">ستتم إزالتك من \'%1$s\'. سيحتفظ الأعضاء الآخرون بالمنزل وقائمته.</string>
+    <string name="delete_account_error_toast">فشل حذف الحساب. حاول مرة أخرى.</string>
 </resources>

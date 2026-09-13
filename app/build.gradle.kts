@@ -79,6 +79,7 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.postgrest.kt)
     implementation(libs.realtime.kt)
+    implementation(libs.functions.kt)
     implementation(libs.ktor.client.android)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.compose.material.icons.extended)

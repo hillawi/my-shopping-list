@@ -38,10 +38,16 @@ class HouseholdViewModel : ViewModel() {
     private val _household = MutableStateFlow<Household?>(null)
     val household: StateFlow<Household?> = _household.asStateFlow()
 
+    // The caller's own role ("owner"/"member") in `household` above -- kept alongside it rather
+    // than re-derived on demand, since account deletion needs to know it to decide whether
+    // deleting the account takes the whole household down or just the caller's membership.
+    private val _myRole = MutableStateFlow<String?>(null)
+    val myRole: StateFlow<String?> = _myRole.asStateFlow()
+
     private val _isLoading = MutableStateFlow(true)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
-    // The user id `household` above was actually resolved for. This ViewModel survives
+    // The user id `household`/`myRole` above were actually resolved for. This ViewModel survives
     // a sign-out/sign-in within the same Activity (see resolveHousehold()'s doc comment), so
     // MainActivity's very first composition for a newly-signed-in user reads `household` before
     // the LaunchedEffect that calls resolveHousehold() has had a chance to run and clear the
@@ -80,6 +86,7 @@ class HouseholdViewModel : ViewModel() {
                     .select { filter { eq("user_id", userId) } }
                     .decodeSingleOrNull<HouseholdMember>()
                 _household.value = membership?.let { fetchHousehold(it.householdId) }
+                _myRole.value = membership?.role
                 _resolvedUserId.value = userId
             } catch (e: CancellationException) {
                 throw e
@@ -110,6 +117,7 @@ class HouseholdViewModel : ViewModel() {
                     HouseholdMember(householdId = created.id!!, userId = userId, role = "owner")
                 )
                 _household.value = created
+                _myRole.value = "owner"
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -147,6 +155,7 @@ class HouseholdViewModel : ViewModel() {
                 // Now that membership exists, re-fetch the full row (the RPC above omits
                 // invite_code) so the new member can immediately share it too.
                 _household.value = fetchHousehold(found.id) ?: found
+                _myRole.value = "member"
             } catch (e: CancellationException) {
                 throw e
             } catch (e: PostgrestRestException) {
