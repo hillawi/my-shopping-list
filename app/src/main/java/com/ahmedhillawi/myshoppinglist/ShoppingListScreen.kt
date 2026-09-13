@@ -674,6 +674,11 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel, household: Household) {
                             // A user belongs to exactly one household at a time (household_members.user_id
                             // is the primary key), so this shows a single household, not a list.
                             Text(stringResource(R.string.account_household_label, household.name))
+                            Spacer(modifier = Modifier.height(8.dp))
+                            val planLabel = stringResource(
+                                if (household.plan == "paid") R.string.plan_paid else R.string.plan_free
+                            )
+                            Text(stringResource(R.string.account_plan_label, planLabel))
                         }
                     },
                     confirmButton = {

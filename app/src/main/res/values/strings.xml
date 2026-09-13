@@ -66,7 +66,11 @@
     <string name="join_household_button">Join household</string>
     <string name="create_household_instead">Create a new household instead</string>
     <string name="invalid_invite_code_error">That invite code doesn\'t match any household.</string>
+    <string name="household_member_limit_error">This household has reached its member limit. Ask the owner to upgrade to add more members.</string>
     <string name="household_generic_error">Something went wrong. Please try again.</string>
     <string name="copy_invite_code">Copy invite code</string>
     <string name="invite_code_copied_toast">Invite code copied!</string>
+    <string name="account_plan_label">Plan: %1$s</string>
+    <string name="plan_free">Free</string>
+    <string name="plan_paid">Paid</string>
 </resources>
