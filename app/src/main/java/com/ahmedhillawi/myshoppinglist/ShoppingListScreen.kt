@@ -60,6 +60,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -84,9 +85,16 @@ import com.ahmedhillawi.myshoppinglist.domain.ShoppingItem
 import com.ahmedhillawi.myshoppinglist.ui.ShoppingListItem
 import com.ahmedhillawi.myshoppinglist.viewmodel.ShoppingListViewModel
 import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.postgrest.postgrest
+import io.github.jan.supabase.postgrest.rpc
 import kotlinx.coroutines.launch
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+
+@Serializable
+private data class HouseholdIdParam(@SerialName("p_household_id") val householdId: String)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -138,6 +146,8 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel, household: Household) {
     var itemToDelete by remember { mutableStateOf<ShoppingItem?>(null) }
     var itemToEdit by remember { mutableStateOf<ShoppingItem?>(null) }
     var showAccountDialog by remember { mutableStateOf(false) }
+    var memberCount by remember { mutableStateOf<Int?>(null) }
+    var memberLimit by remember { mutableStateOf<Int?>(null) }
     var editName by remember { mutableStateOf("") }
     var editQuantity by remember { mutableStateOf("1") }
     var editUnit by remember { mutableStateOf(MeasurementUnit.PCS) }
@@ -663,6 +673,18 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel, household: Household) {
             // Account details — read-only for now; editing details and account deletion are
             // planned follow-ups, not built here since there's nothing yet to wire them to.
             if (showAccountDialog) {
+                // Fetched via the same SECURITY DEFINER functions the household_members insert
+                // policy itself uses to enforce the cap (see household_plans migration), so this
+                // always matches what would actually be allowed — not a separately-maintained copy.
+                LaunchedEffect(household.id) {
+                    val householdId = household.id ?: return@LaunchedEffect
+                    memberCount = supabase.postgrest.rpc(
+                        "household_member_count", HouseholdIdParam(householdId)
+                    ).decodeAs<Int>()
+                    memberLimit = supabase.postgrest.rpc(
+                        "household_member_limit", HouseholdIdParam(householdId)
+                    ).decodeAs<Int>()
+                }
                 AlertDialog(
                     onDismissRequest = { showAccountDialog = false },
                     title = { Text(stringResource(R.string.account_details_title)) },
@@ -679,6 +701,12 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel, household: Household) {
                                 if (household.plan == "paid") R.string.plan_paid else R.string.plan_free
                             )
                             Text(stringResource(R.string.account_plan_label, planLabel))
+                            val count = memberCount
+                            val limit = memberLimit
+                            if (count != null && limit != null) {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(stringResource(R.string.account_member_count_label, count, limit))
+                            }
                         }
                     },
                     confirmButton = {
