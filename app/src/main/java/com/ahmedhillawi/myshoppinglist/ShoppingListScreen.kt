@@ -83,10 +83,13 @@ import com.ahmedhillawi.myshoppinglist.domain.MeasurementUnit
 import com.ahmedhillawi.myshoppinglist.domain.ShoppingCategory
 import com.ahmedhillawi.myshoppinglist.domain.ShoppingItem
 import com.ahmedhillawi.myshoppinglist.ui.ShoppingListItem
+import com.ahmedhillawi.myshoppinglist.viewmodel.HouseholdViewModel
 import com.ahmedhillawi.myshoppinglist.viewmodel.ShoppingListViewModel
 import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.functions.functions
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.rpc
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -98,9 +101,10 @@ private data class HouseholdIdParam(@SerialName("p_household_id") val householdI
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ShoppingListScreen(viewModel: ShoppingListViewModel, household: Household) {
+fun ShoppingListScreen(viewModel: ShoppingListViewModel, household: Household, householdViewModel: HouseholdViewModel) {
     val activeItems by viewModel.activeItems.collectAsState()
     val purchasedItems by viewModel.purchasedItems.collectAsState()
+    val myRole by householdViewModel.myRole.collectAsState()
 
     // State for the Settings Menu
     var menuExpanded by remember { mutableStateOf(false) }
@@ -148,6 +152,8 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel, household: Household) {
     var showAccountDialog by remember { mutableStateOf(false) }
     var memberCount by remember { mutableStateOf<Int?>(null) }
     var memberLimit by remember { mutableStateOf<Int?>(null) }
+    var showDeleteAccountConfirm by remember { mutableStateOf(false) }
+    var isDeletingAccount by remember { mutableStateOf(false) }
     var editName by remember { mutableStateOf("") }
     var editQuantity by remember { mutableStateOf("1") }
     var editUnit by remember { mutableStateOf(MeasurementUnit.PCS) }
@@ -670,8 +676,8 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel, household: Household) {
                 )
             }
 
-            // Account details — read-only for now; editing details and account deletion are
-            // planned follow-ups, not built here since there's nothing yet to wire them to.
+            // Account details — editing details is still a planned follow-up, not built here
+            // since there's nothing yet to wire it to.
             if (showAccountDialog) {
                 // Fetched via the same SECURITY DEFINER functions the household_members insert
                 // policy itself uses to enforce the cap (see household_plans migration), so this
@@ -711,6 +717,64 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel, household: Household) {
                     },
                     confirmButton = {
                         TextButton(onClick = { showAccountDialog = false }) { Text(stringResource(R.string.close_button)) }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = {
+                            showAccountDialog = false
+                            showDeleteAccountConfirm = true
+                        }) { Text(stringResource(R.string.delete_account_button), color = Color.Red) }
+                    }
+                )
+            }
+
+            // Delete Account confirmation — the consequence differs by the caller's own role
+            // (see myRole, populated from HouseholdViewModel): an owner deleting their account
+            // takes the whole household and every item with it (household_id cascades all the
+            // way down, see the delete_own_household_data migration); a member deleting their
+            // account only removes their own membership, leaving the household intact for
+            // everyone else.
+            if (showDeleteAccountConfirm) {
+                AlertDialog(
+                    onDismissRequest = { if (!isDeletingAccount) showDeleteAccountConfirm = false },
+                    title = { Text(stringResource(R.string.delete_account_title)) },
+                    text = {
+                        val messageRes = if (myRole == "owner") {
+                            R.string.delete_account_confirm_owner
+                        } else {
+                            R.string.delete_account_confirm_member
+                        }
+                        Text(stringResource(messageRes, household.name))
+                    },
+                    confirmButton = {
+                        TextButton(
+                            enabled = !isDeletingAccount,
+                            onClick = {
+                                scope.launch {
+                                    isDeletingAccount = true
+                                    try {
+                                        supabase.functions("delete-account")
+                                        supabase.auth.signOut()
+                                    } catch (e: CancellationException) {
+                                        throw e
+                                    } catch (e: Exception) {
+                                        Toast.makeText(
+                                            context,
+                                            context.getString(R.string.delete_account_error_toast),
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    } finally {
+                                        isDeletingAccount = false
+                                        showDeleteAccountConfirm = false
+                                    }
+                                }
+                            }
+                        ) { Text(stringResource(R.string.delete_account_button), color = Color.Red) }
+                    },
+                    dismissButton = {
+                        TextButton(
+                            enabled = !isDeletingAccount,
+                            onClick = { showDeleteAccountConfirm = false }
+                        ) { Text(stringResource(R.string.cancel_button)) }
                     }
                 )
             }

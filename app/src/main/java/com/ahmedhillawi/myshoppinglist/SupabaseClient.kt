@@ -2,6 +2,7 @@ package com.ahmedhillawi.myshoppinglist
 
 import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.createSupabaseClient
+import io.github.jan.supabase.functions.Functions
 import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.realtime.Realtime
 import io.ktor.client.engine.okhttp.OkHttp
@@ -13,6 +14,7 @@ val supabase = createSupabaseClient(
     httpEngine = OkHttp.create()
     install(Postgrest)
     install(Realtime)
+    install(Functions)
     install(Auth) {
         // Must match the myshoppinglist://login-callback intent-filter in AndroidManifest.xml
         // and the Site URL configured in Supabase Auth — handleDeeplinks() in MainActivity

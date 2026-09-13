@@ -38,6 +38,12 @@ class HouseholdViewModel : ViewModel() {
     private val _household = MutableStateFlow<Household?>(null)
     val household: StateFlow<Household?> = _household.asStateFlow()
 
+    // The caller's own role ("owner"/"member") in `household` above -- kept alongside it rather
+    // than re-derived on demand, since account deletion needs to know it to decide whether
+    // deleting the account takes the whole household down or just the caller's membership.
+    private val _myRole = MutableStateFlow<String?>(null)
+    val myRole: StateFlow<String?> = _myRole.asStateFlow()
+
     private val _isLoading = MutableStateFlow(true)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
@@ -66,6 +72,7 @@ class HouseholdViewModel : ViewModel() {
                     .select { filter { eq("user_id", userId) } }
                     .decodeSingleOrNull<HouseholdMember>()
                 _household.value = membership?.let { fetchHousehold(it.householdId) }
+                _myRole.value = membership?.role
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -95,6 +102,7 @@ class HouseholdViewModel : ViewModel() {
                     HouseholdMember(householdId = created.id!!, userId = userId, role = "owner")
                 )
                 _household.value = created
+                _myRole.value = "owner"
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -132,6 +140,7 @@ class HouseholdViewModel : ViewModel() {
                 // Now that membership exists, re-fetch the full row (the RPC above omits
                 // invite_code) so the new member can immediately share it too.
                 _household.value = fetchHousehold(found.id) ?: found
+                _myRole.value = "member"
             } catch (e: CancellationException) {
                 throw e
             } catch (e: PostgrestRestException) {

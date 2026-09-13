@@ -77,7 +77,7 @@ class MainActivity : ComponentActivity() {
                                     LaunchedEffect(currentHousehold.id) {
                                         viewModel.start(currentHousehold.id!!)
                                     }
-                                    ShoppingListScreen(viewModel, currentHousehold)
+                                    ShoppingListScreen(viewModel, currentHousehold, householdViewModel)
                                 }
                             }
                         }
