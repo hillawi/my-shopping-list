@@ -41,6 +41,20 @@ class HouseholdViewModel : ViewModel() {
     private val _isLoading = MutableStateFlow(true)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
+    // The user id `household` above was actually resolved for. This ViewModel survives
+    // a sign-out/sign-in within the same Activity (see resolveHousehold()'s doc comment), so
+    // MainActivity's very first composition for a newly-signed-in user reads `household` before
+    // the LaunchedEffect that calls resolveHousehold() has had a chance to run and clear the
+    // *previous* user's household out — a LaunchedEffect is a post-composition side effect, so no
+    // amount of resetting inside it can affect that same frame's render decision. Comparing this
+    // against the live session's user id (see MainActivity) forces the loading state instead of
+    // briefly rendering the previous user's household under the new user's identity, which used
+    // to let ShoppingListViewModel.start() fire once for that stale id and permanently no-op on
+    // it afterwards (its own idempotency guard treats "already subscribed to this id" as done,
+    // even when it was never a legitimate subscription).
+    private val _resolvedUserId = MutableStateFlow<String?>(null)
+    val resolvedUserId: StateFlow<String?> = _resolvedUserId.asStateFlow()
+
     private val _error = MutableStateFlow<HouseholdError?>(null)
     val error: StateFlow<HouseholdError?> = _error.asStateFlow()
 
@@ -66,6 +80,7 @@ class HouseholdViewModel : ViewModel() {
                     .select { filter { eq("user_id", userId) } }
                     .decodeSingleOrNull<HouseholdMember>()
                 _household.value = membership?.let { fetchHousehold(it.householdId) }
+                _resolvedUserId.value = userId
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
