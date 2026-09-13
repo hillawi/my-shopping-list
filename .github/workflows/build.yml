@@ -24,5 +24,11 @@ jobs:
       - name: Accept Android SDK licenses
         run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses || true
 
+      - name: Run unit tests
+        # Integration tests under app/src/test/.../integration/ need a local Supabase stack,
+        # which isn't available here -- they self-skip via JUnit's Assume (see
+        # integration/LocalSupabase.kt) rather than failing, so this stays green.
+        run: ./gradlew testDebugUnitTest --stacktrace
+
       - name: Build debug APK
         run: ./gradlew assembleDebug --stacktrace
