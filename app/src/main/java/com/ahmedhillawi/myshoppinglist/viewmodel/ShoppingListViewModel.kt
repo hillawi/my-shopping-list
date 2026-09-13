@@ -87,9 +87,15 @@ class ShoppingListViewModel : ViewModel() {
                 isPurchased = false, // Always bring back to active list
                 householdId = householdId
             )
-            // 'upsert' checks for a household_id+name conflict. If found, it updates (e.g. setting isPurchased to false)
-            supabase.from("shopping_items").upsert(item) {
-                onConflict = "household_id,name"
+            try {
+                // 'upsert' checks for a household_id+name conflict. If found, it updates (e.g. setting isPurchased to false)
+                supabase.from("shopping_items").upsert(item) {
+                    onConflict = "household_id,name"
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w("ShoppingListViewModel", "Failed to add or update item '$name'", e)
             }
         }
     }
