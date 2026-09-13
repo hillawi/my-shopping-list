@@ -3,15 +3,12 @@ package com.ahmedhillawi.myshoppinglist.viewmodel
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ahmedhillawi.myshoppinglist.data.ShoppingItemsApi
+import com.ahmedhillawi.myshoppinglist.data.SupabaseShoppingItemsApi
 import com.ahmedhillawi.myshoppinglist.domain.MeasurementUnit
 import com.ahmedhillawi.myshoppinglist.domain.ShoppingCategory
 import com.ahmedhillawi.myshoppinglist.domain.ShoppingItem
 import com.ahmedhillawi.myshoppinglist.supabase
-import io.github.jan.supabase.annotations.SupabaseExperimental
-import io.github.jan.supabase.postgrest.from
-import io.github.jan.supabase.postgrest.query.filter.FilterOperation
-import io.github.jan.supabase.postgrest.query.filter.FilterOperator
-import io.github.jan.supabase.realtime.selectAsFlow
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,7 +23,13 @@ import java.time.Instant
 import java.util.Locale
 
 // ViewModel is kept in memory by the Android OS until the screen is permanently closed.
-class ShoppingListViewModel : ViewModel() {
+// `api` defaults to the real Supabase-backed implementation in production (so `by viewModels()`
+// in MainActivity needs no factory -- @JvmOverloads generates the no-arg constructor Android's
+// default ViewModelProvider.Factory looks for via reflection); tests construct this directly with
+// a hand-written fake instead.
+class ShoppingListViewModel @JvmOverloads constructor(
+    private val api: ShoppingItemsApi = SupabaseShoppingItemsApi(supabase)
+) : ViewModel() {
     private val _allItems = MutableStateFlow<List<ShoppingItem>>(emptyList())
     private var householdId: String? = null
     private var itemsJob: Job? = null
@@ -65,13 +68,8 @@ class ShoppingListViewModel : ViewModel() {
         _allItems.value = emptyList()
     }
 
-    @OptIn(SupabaseExperimental::class)
     private fun observeItems(householdId: String) {
-        itemsJob = supabase.from("shopping_items")
-            .selectAsFlow(
-                ShoppingItem::id,
-                filter = FilterOperation("household_id", FilterOperator.EQ, householdId)
-            )
+        itemsJob = api.observeItems(householdId)
             .onEach { _allItems.value = it }
             .launchIn(viewModelScope)
     }
@@ -88,13 +86,14 @@ class ShoppingListViewModel : ViewModel() {
                 householdId = householdId
             )
             try {
-                // 'upsert' checks for a household_id+name conflict. If found, it updates (e.g. setting isPurchased to false)
-                supabase.from("shopping_items").upsert(item) {
-                    onConflict = "household_id,name"
-                }
+                api.addOrUpdateItem(item)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
+                // Previously this upsert essentially never failed; the household_item_cap_trigger
+                // (see supabase/migrations) now gives it a real, expected failure mode once a
+                // household hits its distinct-item limit — this must not crash the app per
+                // CLAUDE.md's known-gaps note on this exact function.
                 Log.w("ShoppingListViewModel", "Failed to add or update item '$name'", e)
             }
         }
@@ -106,20 +105,18 @@ class ShoppingListViewModel : ViewModel() {
     }
 
     fun togglePurchased(item: ShoppingItem) {
+        val id = item.id ?: return
         val newValue = !item.isPurchased
         val newPurchasedAt = if (newValue) Instant.now().toString() else null
-        updateItemLocally(item.id) { it.copy(isPurchased = newValue, purchasedAt = newPurchasedAt) }
+        updateItemLocally(id) { it.copy(isPurchased = newValue, purchasedAt = newPurchasedAt) }
         viewModelScope.launch {
             try {
-                supabase.from("shopping_items").update({
-                    ShoppingItem::isPurchased setTo newValue
-                    ShoppingItem::purchasedAt setTo newPurchasedAt
-                }) { filter { ShoppingItem::id eq item.id } }
+                api.setPurchased(id, newValue, newPurchasedAt)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                Log.w("ShoppingListViewModel", "Failed to toggle purchased for item ${item.id}", e)
-                updateItemLocally(item.id) { it.copy(isPurchased = item.isPurchased, purchasedAt = item.purchasedAt) }
+                Log.w("ShoppingListViewModel", "Failed to toggle purchased for item $id", e)
+                updateItemLocally(id) { it.copy(isPurchased = item.isPurchased, purchasedAt = item.purchasedAt) }
             }
         }
     }
@@ -131,6 +128,7 @@ class ShoppingListViewModel : ViewModel() {
         newUnit: MeasurementUnit,
         newCategory: ShoppingCategory
     ) {
+        val id = item.id ?: return
         val trimmedName = newName.trim()
         if (trimmedName.isBlank()) return
         val trimmedQuantity = newQuantity.ifBlank { "1" }
@@ -138,26 +136,21 @@ class ShoppingListViewModel : ViewModel() {
             newUnit == item.unit && newCategory.name == item.category
         ) return
         val previous = item
-        updateItemLocally(item.id) {
+        updateItemLocally(id) {
             it.copy(name = trimmedName, quantity = trimmedQuantity, unit = newUnit, category = newCategory.name)
         }
         viewModelScope.launch {
             try {
-                supabase.from("shopping_items").update({
-                    ShoppingItem::name setTo trimmedName
-                    ShoppingItem::quantity setTo trimmedQuantity
-                    ShoppingItem::unit setTo newUnit
-                    ShoppingItem::category setTo newCategory.name
-                }) { filter { ShoppingItem::id eq item.id } }
+                api.updateItem(id, trimmedName, trimmedQuantity, newUnit, newCategory.name)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                Log.w("ShoppingListViewModel", "Failed to update item ${item.id}", e)
+                Log.w("ShoppingListViewModel", "Failed to update item $id", e)
                 // Revert only the fields this call changed, not the whole item — a concurrent
                 // realtime push (e.g. another device toggling isImportant) may have landed on
                 // _allItems while this call was in flight, and replacing the whole item with
                 // `previous` would silently discard that update.
-                updateItemLocally(item.id) {
+                updateItemLocally(id) {
                     it.copy(name = previous.name, quantity = previous.quantity, unit = previous.unit, category = previous.category)
                 }
             }
@@ -180,26 +173,24 @@ class ShoppingListViewModel : ViewModel() {
     }
 
     fun removeItem(item: ShoppingItem) {
+        val id = item.id ?: return
         viewModelScope.launch {
-            supabase.from("shopping_items").delete {
-                filter { eq("id", item.id ?: 0) }
-            }
+            api.deleteItem(id)
         }
     }
 
     fun toggleImportant(item: ShoppingItem) {
+        val id = item.id ?: return
         val newValue = !item.isImportant
-        updateItemLocally(item.id) { it.copy(isImportant = newValue) }
+        updateItemLocally(id) { it.copy(isImportant = newValue) }
         viewModelScope.launch {
             try {
-                supabase.from("shopping_items").update({
-                    ShoppingItem::isImportant setTo newValue
-                }) { filter { ShoppingItem::id eq item.id } }
+                api.setImportant(id, newValue)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                Log.w("ShoppingListViewModel", "Failed to toggle important for item ${item.id}", e)
-                updateItemLocally(item.id) { it.copy(isImportant = item.isImportant) }
+                Log.w("ShoppingListViewModel", "Failed to toggle important for item $id", e)
+                updateItemLocally(id) { it.copy(isImportant = item.isImportant) }
             }
         }
     }

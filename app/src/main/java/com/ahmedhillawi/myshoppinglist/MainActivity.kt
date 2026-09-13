@@ -61,7 +61,7 @@ class MainActivity : ComponentActivity() {
                             val userId = (sessionStatus as SessionStatus.Authenticated).session.user?.id
                             LaunchedEffect(userId) {
                                 viewModel.reset()
-                                householdViewModel.resolveHousehold()
+                                userId?.let { householdViewModel.resolveHousehold(it) }
                             }
 
                             when {

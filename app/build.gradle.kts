@@ -66,6 +66,14 @@ android {
         compose = true
         buildConfig = true
     }
+    testOptions {
+        unitTests {
+            // ViewModel error paths call android.util.Log.w(...), which is an unmocked Android
+            // stub in a plain JVM unit test and throws by default -- return no-op defaults
+            // instead of adding Robolectric just to mock a single logging call.
+            isReturnDefaultValues = true
+        }
+    }
 }
 
 dependencies {
@@ -89,6 +97,11 @@ dependencies {
     implementation(libs.postgrest.kt)
     implementation(libs.androidx.core.splashscreen)
     testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.postgrest.kt)
+    testImplementation(libs.realtime.kt)
+    testImplementation(libs.gotrue.kt)
+    testImplementation(libs.ktor.client.okhttp)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
