@@ -1,7 +1,6 @@
--- Local dev schema for MyShoppingList, reconstructed to mirror production
--- (production has no tracked migrations; SQL is run manually via the Supabase
--- SQL editor). This file exists only under supabase/migrations
--- for the local Docker stack and is NOT applied to the production project.
+-- Base schema for MyShoppingList: households, household_members, and household-scoped
+-- shopping_items. Applied to both the local Docker stack (`supabase db reset`) and production
+-- (`supabase db push`, once linked) — this is the single source of truth for both.
 
 create type measurement_unit as enum ('PACK', 'ML', 'L', 'G', 'KG', 'PCS');
 
