@@ -50,6 +50,7 @@ class MainActivity : ComponentActivity() {
                             val householdViewModel: HouseholdViewModel by viewModels()
                             val household by householdViewModel.household.collectAsState()
                             val isLoadingHousehold by householdViewModel.isLoading.collectAsState()
+                            val resolvedUserId by householdViewModel.resolvedUserId.collectAsState()
                             val viewModel: ShoppingListViewModel by viewModels()
 
                             // Both ViewModels are retrieved via `by viewModels()` and survive a
@@ -64,7 +65,17 @@ class MainActivity : ComponentActivity() {
                             }
 
                             when {
-                                isLoadingHousehold -> {
+                                // resolvedUserId != userId (not just isLoadingHousehold) catches
+                                // the frame where a new user just signed in but resolveHousehold()
+                                // hasn't run yet: LaunchedEffect(userId) above is a post-composition
+                                // side effect, so this very composition still sees `household` and
+                                // `isLoadingHousehold` exactly as the previous user left them.
+                                // Without this check that stale household briefly renders under
+                                // the new user's identity, ShoppingListViewModel.start() fires for
+                                // it once, and its own idempotency guard then permanently ignores
+                                // the correct start() call once the new user legitimately joins
+                                // that same household later.
+                                isLoadingHousehold || resolvedUserId != userId -> {
                                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                                         CircularProgressIndicator()
                                     }
