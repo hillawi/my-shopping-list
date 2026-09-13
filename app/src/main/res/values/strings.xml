@@ -71,6 +71,7 @@
     <string name="copy_invite_code">Copy invite code</string>
     <string name="invite_code_copied_toast">Invite code copied!</string>
     <string name="account_plan_label">Plan: %1$s</string>
+    <string name="account_member_count_label">Members: %1$d / %2$d</string>
     <string name="plan_free">Free</string>
     <string name="plan_paid">Paid</string>
 </resources>
