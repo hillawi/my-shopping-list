@@ -1,6 +1,5 @@
 -- Purchase history retention — PRODUCTION migration. Run manually via the Supabase SQL editor
--- against the production project (production has no tracked migrations — see CLAUDE.md
--- "Git workflow").
+-- against the production project (production has no tracked migrations).
 --
 -- Mirrors supabase/migrations/20260913000001_purchase_history_retention.sql (local dev).
 -- Requires the household_plans migration (production_household_plans_migration.sql) to already

@@ -1,6 +1,6 @@
 -- Household plans: free vs paid, gating how many members a household can have — PRODUCTION
 -- migration. Run this manually via the Supabase SQL editor against the production project
--- (production has no tracked migrations — see CLAUDE.md "Git workflow").
+-- (production has no tracked migrations).
 --
 -- Mirrors supabase/migrations/20260913000000_household_plans.sql (local dev), with IF EXISTS /
 -- IF NOT EXISTS guards so it's safe to re-run if something goes wrong partway through.
