@@ -31,12 +31,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import com.ahmedhillawi.myshoppinglist.domain.ShoppingItem
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -70,85 +72,127 @@ fun ShoppingListItem(
             )
         },
         supportingContent = {
-            val quantityColor by animateColorAsState(
-                targetValue = if (displayAsPurchased) Color.Gray else MaterialTheme.colorScheme.primary,
-                animationSpec = tween(StrikethroughDurationMillis),
-                label = "quantityColor"
-            )
-            val quantityText = "${item.quantity} ${stringResource(item.unit.resId)}"
-            // Only numeric quantities can be stepped; free-text values (e.g. "2-3") just show as-is.
-            if (item.quantity.trim().toDoubleOrNull() != null) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(
-                        onClick = onDecrementQuantity,
-                        modifier = Modifier.size(28.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Remove,
-                            contentDescription = "Decrease quantity",
-                            tint = quantityColor,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
-                    Text(
-                        text = quantityText,
-                        color = quantityColor,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    IconButton(
-                        onClick = onIncrementQuantity,
-                        modifier = Modifier.size(28.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = "Increase quantity",
-                            tint = quantityColor,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
-                }
-            } else {
-                Text(
-                    text = quantityText,
-                    color = quantityColor,
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
+            QuantityDisplay(item, displayAsPurchased, onIncrementQuantity, onDecrementQuantity)
         },
         leadingContent = {
-            Checkbox(
-                checked = displayAsPurchased,
-                onCheckedChange = { isChecked ->
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    if (isChecked && !item.isPurchased) {
-                        pendingChecked = true
-                        scope.launch {
-                            delay(StrikethroughDurationMillis.toLong())
-                            onCheckedChange(true)
-                        }
-                    } else {
-                        pendingChecked = false
-                        onCheckedChange(isChecked)
-                    }
-                }
+            PurchasedCheckbox(
+                item = item,
+                displayAsPurchased = displayAsPurchased,
+                haptic = haptic,
+                scope = scope,
+                setPendingChecked = { pendingChecked = it },
+                onCheckedChange = onCheckedChange
             )
         },
         trailingContent = {
-            IconButton(
-                onClick = {
-                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                    onImportantToggle()
-                }
-            ) {
-                Icon(
-                    imageVector = if(item.isImportant) Icons.Filled.Star else Icons.Outlined.Star,
-                    contentDescription = "Important",
-                    tint = if(item.isImportant) Color(0xFFFF9800) else Color.Gray.copy(alpha = 0.5f)
-                )
-            }
+            ImportantToggleButton(
+                isImportant = item.isImportant,
+                haptic = haptic,
+                onToggle = onImportantToggle
+            )
         },
         colors = ListItemDefaults.colors(containerColor = Color.Transparent)
     )
+}
+
+// Extracted out of ShoppingListItem's leadingContent lambda to keep that composable's own
+// cognitive complexity down.
+@Composable
+private fun PurchasedCheckbox(
+    item: ShoppingItem,
+    displayAsPurchased: Boolean,
+    haptic: HapticFeedback,
+    scope: CoroutineScope,
+    setPendingChecked: (Boolean) -> Unit,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    Checkbox(
+        checked = displayAsPurchased,
+        onCheckedChange = { isChecked ->
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+            if (isChecked && !item.isPurchased) {
+                setPendingChecked(true)
+                scope.launch {
+                    delay(StrikethroughDurationMillis.toLong())
+                    onCheckedChange(true)
+                }
+            } else {
+                setPendingChecked(false)
+                onCheckedChange(isChecked)
+            }
+        }
+    )
+}
+
+// Extracted out of ShoppingListItem's trailingContent lambda to keep that composable's own
+// cognitive complexity down.
+@Composable
+private fun ImportantToggleButton(isImportant: Boolean, haptic: HapticFeedback, onToggle: () -> Unit) {
+    IconButton(
+        onClick = {
+            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            onToggle()
+        }
+    ) {
+        Icon(
+            imageVector = if (isImportant) Icons.Filled.Star else Icons.Outlined.Star,
+            contentDescription = "Important",
+            tint = if (isImportant) Color(0xFFFF9800) else Color.Gray.copy(alpha = 0.5f)
+        )
+    }
+}
+
+// Extracted out of ShoppingListItem's supportingContent lambda to keep that composable's own
+// cognitive complexity down.
+@Composable
+private fun QuantityDisplay(
+    item: ShoppingItem,
+    displayAsPurchased: Boolean,
+    onIncrement: () -> Unit,
+    onDecrement: () -> Unit
+) {
+    val quantityColor by animateColorAsState(
+        targetValue = if (displayAsPurchased) Color.Gray else MaterialTheme.colorScheme.primary,
+        animationSpec = tween(StrikethroughDurationMillis),
+        label = "quantityColor"
+    )
+    val quantityText = "${item.quantity} ${stringResource(item.unit.resId)}"
+    // Only numeric quantities can be stepped; free-text values (e.g. "2-3") just show as-is.
+    if (item.quantity.trim().toDoubleOrNull() != null) {
+        QuantityStepper(quantityText, quantityColor, onIncrement, onDecrement)
+    } else {
+        Text(text = quantityText, color = quantityColor, style = MaterialTheme.typography.bodyMedium)
+    }
+}
+
+// Extracted out of ShoppingListItem's supportingContent lambda to keep that composable's own
+// cognitive complexity down.
+@Composable
+private fun QuantityStepper(
+    quantityText: String,
+    color: Color,
+    onIncrement: () -> Unit,
+    onDecrement: () -> Unit
+) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        IconButton(onClick = onDecrement, modifier = Modifier.size(28.dp)) {
+            Icon(
+                imageVector = Icons.Default.Remove,
+                contentDescription = "Decrease quantity",
+                tint = color,
+                modifier = Modifier.size(16.dp)
+            )
+        }
+        Text(text = quantityText, color = color, style = MaterialTheme.typography.bodyMedium)
+        IconButton(onClick = onIncrement, modifier = Modifier.size(28.dp)) {
+            Icon(
+                imageVector = Icons.Default.Add,
+                contentDescription = "Increase quantity",
+                tint = color,
+                modifier = Modifier.size(16.dp)
+            )
+        }
+    }
 }
 
 // Draws the strikethrough as a line that grows across the text and fades its

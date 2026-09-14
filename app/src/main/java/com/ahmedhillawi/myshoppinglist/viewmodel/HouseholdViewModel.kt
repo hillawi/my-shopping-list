@@ -3,38 +3,29 @@ package com.ahmedhillawi.myshoppinglist.viewmodel
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ahmedhillawi.myshoppinglist.data.HouseholdApi
+import com.ahmedhillawi.myshoppinglist.data.JoinHouseholdResult
+import com.ahmedhillawi.myshoppinglist.data.SupabaseHouseholdApi
 import com.ahmedhillawi.myshoppinglist.domain.Household
-import com.ahmedhillawi.myshoppinglist.domain.HouseholdMember
 import com.ahmedhillawi.myshoppinglist.supabase
-import io.github.jan.supabase.auth.auth
-import io.github.jan.supabase.postgrest.exception.PostgrestRestException
-import io.github.jan.supabase.postgrest.from
-import io.github.jan.supabase.postgrest.postgrest
-import io.github.jan.supabase.postgrest.rpc
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
 
 enum class HouseholdError { INVALID_CODE, GENERIC, MEMBER_LIMIT_REACHED }
-
-// Postgres error code for an RLS policy violation — surfaced here specifically because the
-// household_members insert policy enforces the plan's member cap (see
-// supabase/migrations/20260913000000_household_plans.sql). The only other condition that policy
-// checks (user_id = auth.uid()) is always true here since userId is set from the current session,
-// so a 42501 at this call site means the cap, not some other permission issue.
-private const val POSTGRES_RLS_VIOLATION_CODE = "42501"
-
-@Serializable
-private data class InviteCodeParams(@SerialName("p_code") val code: String)
 
 // Resolves, creates, or joins the household the current user belongs to.
 // Kept separate from ShoppingListViewModel: household resolution is a distinct
 // lifecycle concern (runs once per session, before the list can even be observed).
-class HouseholdViewModel : ViewModel() {
+// `api` defaults to the real Supabase-backed implementation in production (so `by viewModels()`
+// in MainActivity needs no factory -- @JvmOverloads generates the no-arg constructor Android's
+// default ViewModelProvider.Factory looks for via reflection); tests construct this directly with
+// a hand-written fake instead.
+class HouseholdViewModel @JvmOverloads constructor(
+    private val api: HouseholdApi = SupabaseHouseholdApi(supabase)
+) : ViewModel() {
     private val _household = MutableStateFlow<Household?>(null)
     val household: StateFlow<Household?> = _household.asStateFlow()
 
@@ -69,6 +60,11 @@ class HouseholdViewModel : ViewModel() {
     private val _isSubmitting = MutableStateFlow(false)
     val isSubmitting: StateFlow<Boolean> = _isSubmitting.asStateFlow()
 
+    // Set by resolveHousehold() and reused by createHousehold()/joinHousehold() so those don't
+    // each need their own way to learn the caller's id -- the caller (MainActivity) already knows
+    // it and passes it into resolveHousehold() once.
+    private var currentUserId: String? = null
+
     fun clearError() {
         _error.value = null
     }
@@ -77,15 +73,13 @@ class HouseholdViewModel : ViewModel() {
     // different account signing in after a sign-out on the same device) — the ViewModel survives
     // that transition (it's fetched via `by viewModels()`), so resolution must be re-triggered
     // explicitly rather than relying on init {} running only once per ViewModel instance.
-    fun resolveHousehold() {
+    fun resolveHousehold(userId: String) {
+        currentUserId = userId
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                val userId = supabase.auth.currentUserOrNull()?.id ?: return@launch
-                val membership = supabase.from("household_members")
-                    .select { filter { eq("user_id", userId) } }
-                    .decodeSingleOrNull<HouseholdMember>()
-                _household.value = membership?.let { fetchHousehold(it.householdId) }
+                val membership = api.getMembership(userId)
+                _household.value = membership?.let { api.getHousehold(it.householdId) }
                 _myRole.value = membership?.role
                 _resolvedUserId.value = userId
             } catch (e: CancellationException) {
@@ -98,24 +92,14 @@ class HouseholdViewModel : ViewModel() {
         }
     }
 
-    private suspend fun fetchHousehold(id: String): Household? =
-        supabase.from("households")
-            .select { filter { eq("id", id) } }
-            .decodeSingleOrNull<Household>()
-
     fun createHousehold(name: String) {
         if (_isSubmitting.value) return
+        val userId = currentUserId ?: return
         viewModelScope.launch {
             _error.value = null
             _isSubmitting.value = true
             try {
-                val userId = supabase.auth.currentUserOrNull()?.id ?: return@launch
-                val created = supabase.from("households")
-                    .insert(Household(name = name.trim())) { select() }
-                    .decodeSingle<Household>()
-                supabase.from("household_members").insert(
-                    HouseholdMember(householdId = created.id!!, userId = userId, role = "owner")
-                )
+                val created = api.createHousehold(name, userId)
                 _household.value = created
                 _myRole.value = "owner"
             } catch (e: CancellationException) {
@@ -131,40 +115,22 @@ class HouseholdViewModel : ViewModel() {
 
     fun joinHousehold(code: String) {
         if (_isSubmitting.value) return
+        val userId = currentUserId ?: return
         viewModelScope.launch {
             _error.value = null
             _isSubmitting.value = true
             try {
-                val userId = supabase.auth.currentUserOrNull()?.id ?: return@launch
-                // A regular row select would need the caller to already be a member (see the
-                // households RLS policy), which isn't true yet at lookup time — so this goes
-                // through a SECURITY DEFINER RPC that only exposes id/name for an exact
-                // invite-code match, instead of widening the table's SELECT policy to "any
-                // authenticated user" (which would let invite_codes be enumerated wholesale).
-                val found = supabase.postgrest.rpc(
-                    "find_household_by_invite_code",
-                    InviteCodeParams(code.trim().uppercase())
-                ).decodeSingleOrNull<Household>()
-                if (found == null) {
-                    _error.value = HouseholdError.INVALID_CODE
-                    return@launch
+                when (val result = api.joinHousehold(code, userId)) {
+                    is JoinHouseholdResult.Success -> {
+                        _household.value = result.household
+                        _myRole.value = "member"
+                    }
+                    JoinHouseholdResult.InvalidCode -> _error.value = HouseholdError.INVALID_CODE
+                    JoinHouseholdResult.MemberLimitReached -> _error.value = HouseholdError.MEMBER_LIMIT_REACHED
+                    JoinHouseholdResult.Error -> _error.value = HouseholdError.GENERIC
                 }
-                supabase.from("household_members").insert(
-                    HouseholdMember(householdId = found.id!!, userId = userId, role = "member")
-                )
-                // Now that membership exists, re-fetch the full row (the RPC above omits
-                // invite_code) so the new member can immediately share it too.
-                _household.value = fetchHousehold(found.id) ?: found
-                _myRole.value = "member"
             } catch (e: CancellationException) {
                 throw e
-            } catch (e: PostgrestRestException) {
-                Log.w("HouseholdViewModel", "Failed to join household", e)
-                _error.value = if (e.code == POSTGRES_RLS_VIOLATION_CODE) {
-                    HouseholdError.MEMBER_LIMIT_REACHED
-                } else {
-                    HouseholdError.GENERIC
-                }
             } catch (e: Exception) {
                 Log.w("HouseholdViewModel", "Failed to join household", e)
                 _error.value = HouseholdError.GENERIC

@@ -6,7 +6,6 @@ import android.content.Context
 import android.content.Intent
 import android.os.LocaleList
 import android.widget.Toast
-import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -110,9 +109,6 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel, household: Household, h
     var menuExpanded by remember { mutableStateOf(false) }
 
     var selectedUnit by remember { mutableStateOf(MeasurementUnit.PCS) }
-
-    // Get current language
-    val currentLocale = AppCompatDelegate.getApplicationLocales()[0]?.language ?: "en"
 
     val context = LocalContext.current
     val clipboard = LocalClipboard.current
@@ -831,7 +827,6 @@ fun getFormattedTimestamp(context: Context): String {
 
 @Composable
 fun SwipeToDeleteItem(
-    item: ShoppingItem,
     onSwipeDelete: () -> Unit,
     content: @Composable () -> Unit
 ) {
