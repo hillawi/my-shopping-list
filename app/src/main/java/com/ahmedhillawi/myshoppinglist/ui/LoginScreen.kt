@@ -4,6 +4,7 @@ import android.app.LocaleManager
 import android.content.Context
 import android.os.LocaleList
 import android.util.Log
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,10 +15,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -36,6 +40,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
@@ -47,6 +52,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.ahmedhillawi.myshoppinglist.R
 import com.ahmedhillawi.myshoppinglist.supabase
 import io.github.jan.supabase.auth.OtpType
@@ -251,7 +257,16 @@ private fun OtpCodeBoxes(
 ) {
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         digits.forEachIndexed { index, digit ->
-            OutlinedTextField(
+            // Material3's OutlinedTextField bakes in ~16dp of horizontal padding on each side
+            // that the convenience overload doesn't expose -- at roughly 44dp per box (8 boxes
+            // on a phone-width screen) that leaves almost no room for the glyph itself, clipping
+            // it. BasicTextField with a manually drawn border sidesteps that entirely.
+            val borderColor = when {
+                !enabled -> MaterialTheme.colorScheme.outline.copy(alpha = 0.38f)
+                digit.isNotEmpty() -> MaterialTheme.colorScheme.primary
+                else -> MaterialTheme.colorScheme.outline
+            }
+            BasicTextField(
                 value = digit,
                 onValueChange = { newValue ->
                     val typed = newValue.filter { it.isDigit() }
@@ -271,10 +286,22 @@ private fun OtpCodeBoxes(
                 },
                 enabled = enabled,
                 singleLine = true,
-                textStyle = MaterialTheme.typography.headlineSmall.copy(textAlign = TextAlign.Center),
+                textStyle = LocalTextStyle.current.copy(
+                    fontSize = 20.sp,
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.onSurface
+                ),
+                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                decorationBox = { innerTextField ->
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        innerTextField()
+                    }
+                },
                 modifier = Modifier
                     .weight(1f)
+                    .height(56.dp)
+                    .border(1.dp, borderColor, RoundedCornerShape(8.dp))
                     .focusRequester(focusRequesters[index])
                     .onPreviewKeyEvent { keyEvent ->
                         if (keyEvent.type == KeyEventType.KeyDown && keyEvent.key == Key.Backspace && digit.isEmpty() && index > 0) {
