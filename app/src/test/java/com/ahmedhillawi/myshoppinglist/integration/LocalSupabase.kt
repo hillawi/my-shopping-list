@@ -32,6 +32,12 @@ private const val LOCAL_API_URL = "http://127.0.0.1:54321"
 private const val LOCAL_ANON_KEY =
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0"
 
+// Same story as LOCAL_ANON_KEY -- Supabase's fixed local-dev demo service-role key, not a secret.
+// Used only to bypass email confirmation for test users (see signUpRandomUser below); never used
+// for anything that should be RLS-scoped.
+private const val LOCAL_SERVICE_ROLE_KEY =
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU"
+
 fun assumeLocalSupabaseRunning() {
     val reachable = runBlocking {
         withTimeoutOrNull(2000) {
@@ -69,14 +75,39 @@ fun newTestClient(): SupabaseClient = createSupabaseClient(
     }
 }
 
-// Signs up a brand-new random user against the local stack (local dev has email confirmation
-// disabled by default -- see supabase/config.toml -- so this returns an already-authenticated
-// client) and returns the client plus that user's id.
+// Signs up a brand-new random user against the local stack and returns that user's id, with the
+// receiver client left authenticated as them. Local dev requires email confirmation (matching
+// production -- see supabase/config.toml's auth.email.enable_confirmations and
+// SignUpOtpIntegrationTest, which covers the real OTP round-trip), so signUpWith alone doesn't
+// establish a session here -- this bypasses that confirmation step server-side via the Admin API
+// (the same service-role pattern the delete-account Edge Function uses) rather than making every
+// other integration test read a real email, since confirming-for-real isn't what they're testing.
 suspend fun SupabaseClient.signUpRandomUser(): String {
     val email = "test-${System.nanoTime()}@example.com"
-    auth.signUpWith(Email) {
+    val password = "password123"
+    val userInfo = auth.signUpWith(Email) {
         this.email = email
-        this.password = "password123"
+        this.password = password
+    } ?: error("Sign-up did not return a user")
+    confirmEmailForTest(userInfo.id)
+    auth.signInWith(Email) {
+        this.email = email
+        this.password = password
     }
-    return auth.currentUserOrNull()?.id ?: error("Sign-up did not establish a session -- is email confirmation enabled locally?")
+    return userInfo.id
+}
+
+private suspend fun confirmEmailForTest(userId: String) {
+    val adminClient = createSupabaseClient(
+        supabaseUrl = LOCAL_API_URL,
+        supabaseKey = LOCAL_SERVICE_ROLE_KEY
+    ) {
+        httpEngine = OkHttp.create()
+        install(Auth) {
+            sessionManager = MemorySessionManager()
+            codeVerifierCache = MemoryCodeVerifierCache()
+            enableLifecycleCallbacks = false
+        }
+    }
+    adminClient.auth.admin.updateUserById(userId) { emailConfirm = true }
 }
