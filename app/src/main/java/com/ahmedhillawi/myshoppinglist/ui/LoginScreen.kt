@@ -21,7 +21,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -31,6 +33,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.ahmedhillawi.myshoppinglist.R
@@ -39,6 +42,7 @@ import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.exception.AuthErrorCode
 import io.github.jan.supabase.auth.exception.AuthRestException
 import io.github.jan.supabase.auth.providers.builtin.Email
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
 // Maps a caught auth exception to a user-facing message, so a raw technical error (a Postgrest/
@@ -59,37 +63,114 @@ private fun resolveAuthErrorMessage(context: Context, e: Exception): String {
     }
 }
 
+// Extracted out of LoginScreen's composable body (rather than inlined in the button onClick
+// lambdas) to keep the composable's own cognitive complexity down -- Compose lambdas nested
+// inside a composable count against that same function. Takes the raw MutableState so it can
+// write isLoading/message/showValidationError without needing a ViewModel (LoginScreen
+// deliberately doesn't have one -- see CLAUDE.md's coroutine-scope-split note).
+private fun handleSignInClick(
+    email: String,
+    password: String,
+    context: Context,
+    scope: CoroutineScope,
+    isLoading: MutableState<Boolean>,
+    message: MutableState<String>,
+    showValidationError: MutableState<Boolean>
+) {
+    // Supabase's own validation only kicks in once a request is sent -- with both fields blank
+    // it reads as an anonymous sign-in attempt and comes back as an opaque
+    // "anonymous_provider_disabled" error, so this is checked upfront instead of surfacing that
+    // raw message to the user.
+    if (email.isBlank() || password.isBlank()) {
+        showValidationError.value = true
+        message.value = context.getString(R.string.auth_missing_fields_error)
+        return
+    }
+    showValidationError.value = false
+    scope.launch {
+        isLoading.value = true
+        try {
+            supabase.auth.signInWith(Email) {
+                this.email = email
+                this.password = password
+            }
+            // No need to navigate manually; MainActivity observes the session change
+        } catch (e: Exception) {
+            message.value = resolveAuthErrorMessage(context, e)
+        } finally {
+            isLoading.value = false
+        }
+    }
+}
+
+private fun handleSignUpClick(
+    email: String,
+    password: String,
+    context: Context,
+    scope: CoroutineScope,
+    message: MutableState<String>,
+    showValidationError: MutableState<Boolean>
+) {
+    if (email.isBlank() || password.isBlank()) {
+        showValidationError.value = true
+        message.value = context.getString(R.string.auth_missing_fields_error)
+        return
+    }
+    showValidationError.value = false
+    scope.launch {
+        try {
+            supabase.auth.signUpWith(Email) {
+                this.email = email
+                this.password = password
+            }
+            message.value = context.getString(R.string.account_created_check_email)
+        } catch (e: Exception) {
+            message.value = resolveAuthErrorMessage(context, e)
+        }
+    }
+}
+
+// Mirrors the language toggle in ShoppingListScreen's overflow menu — same LocaleManager
+// mechanism, surfaced directly here since this screen has no menu of its own and is the first
+// thing a user sees, before any language has been chosen. Extracted out of LoginScreen to keep
+// that composable's own cognitive complexity down.
+@Composable
+private fun LanguageToggleButton(modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    val localeManager = context.getSystemService(LocaleManager::class.java)
+    val currentTag = if (!localeManager.applicationLocales.isEmpty) {
+        localeManager.applicationLocales[0].toLanguageTag()
+    } else "en"
+    val targetLanguageLabel = if (currentTag.contains("ar")) "English" else "العربية"
+
+    TextButton(
+        onClick = {
+            val newTag = if (currentTag.contains("ar")) "en" else "ar"
+            localeManager.applicationLocales = LocaleList.forLanguageTags(newTag)
+        },
+        modifier = modifier
+    ) {
+        Icon(Icons.Default.Language, contentDescription = null)
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(targetLanguageLabel)
+    }
+}
+
 @Composable
 fun LoginScreen() {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    var isLoading by remember { mutableStateOf(false) }
-    var message by remember { mutableStateOf("") }
-    var showValidationError by remember { mutableStateOf(false) }
+    val isLoadingState = remember { mutableStateOf(false) }
+    val isLoading by isLoadingState
+    val messageState = remember { mutableStateOf("") }
+    val message by messageState
+    val showValidationErrorState = remember { mutableStateOf(false) }
+    val showValidationError by showValidationErrorState
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // Mirrors the language toggle in ShoppingListScreen's overflow menu — same
-        // LocaleManager mechanism, surfaced directly here since this screen has no menu of
-        // its own and is the first thing a user sees, before any language has been chosen.
-        val localeManager = context.getSystemService(LocaleManager::class.java)
-        val currentTag = if (!localeManager.applicationLocales.isEmpty) {
-            localeManager.applicationLocales[0].toLanguageTag()
-        } else "en"
-        val targetLanguageLabel = if (currentTag.contains("ar")) "English" else "العربية"
-
-        TextButton(
-            onClick = {
-                val newTag = if (currentTag.contains("ar")) "en" else "ar"
-                localeManager.applicationLocales = LocaleList.forLanguageTags(newTag)
-            },
-            modifier = Modifier.align(Alignment.TopEnd).padding(16.dp)
-        ) {
-            Icon(Icons.Default.Language, contentDescription = null)
-            Spacer(modifier = Modifier.width(4.dp))
-            Text(targetLanguageLabel)
-        }
+        LanguageToggleButton(modifier = Modifier.align(Alignment.TopEnd).padding(16.dp))
 
         Column(
             modifier = Modifier.fillMaxSize().padding(24.dp),
@@ -115,7 +196,11 @@ fun LoginScreen() {
                 label = { Text(stringResource(R.string.password_label)) },
                 isError = showValidationError && password.isBlank(),
                 modifier = Modifier.fillMaxWidth(),
-                visualTransformation = PasswordVisualTransformation()
+                visualTransformation = PasswordVisualTransformation(),
+                // KeyboardType.Password tells the IME not to cache this input for
+                // suggestions/autofill -- a generic text keyboard would otherwise be free to
+                // remember characters typed into this field.
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
             )
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -127,30 +212,7 @@ fun LoginScreen() {
 
             Button(
                 onClick = {
-                    // Supabase's own validation only kicks in once a request is sent — with both
-                    // fields blank it reads as an anonymous sign-in attempt and comes back as an
-                    // opaque "anonymous_provider_disabled" error, so this is checked upfront
-                    // instead of surfacing that raw message to the user.
-                    if (email.isBlank() || password.isBlank()) {
-                        showValidationError = true
-                        message = context.getString(R.string.auth_missing_fields_error)
-                        return@Button
-                    }
-                    showValidationError = false
-                    scope.launch {
-                        isLoading = true
-                        try {
-                            supabase.auth.signInWith(Email) {
-                                this.email = email
-                                this.password = password
-                            }
-                            // No need to navigate manually; MainActivity observes the session change
-                        } catch (e: Exception) {
-                            message = resolveAuthErrorMessage(context, e)
-                        } finally {
-                            isLoading = false
-                        }
-                    }
+                    handleSignInClick(email, password, context, scope, isLoadingState, messageState, showValidationErrorState)
                 },
                 modifier = Modifier.fillMaxWidth(),
                 enabled = !isLoading
@@ -160,23 +222,7 @@ fun LoginScreen() {
 
             // Sign Up Button
             TextButton(onClick = {
-                if (email.isBlank() || password.isBlank()) {
-                    showValidationError = true
-                    message = context.getString(R.string.auth_missing_fields_error)
-                    return@TextButton
-                }
-                showValidationError = false
-                scope.launch {
-                    try {
-                        supabase.auth.signUpWith(Email) {
-                            this.email = email
-                            this.password = password
-                        }
-                        message = context.getString(R.string.account_created_check_email)
-                    } catch (e: Exception) {
-                        message = resolveAuthErrorMessage(context, e)
-                    }
-                }
+                handleSignUpClick(email, password, context, scope, messageState, showValidationErrorState)
             }) {
                 Text(stringResource(R.string.create_account))
             }

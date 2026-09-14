@@ -124,6 +124,8 @@ dependencies {
 // root build.gradle.kts `sonar` block). Not wired into CI -- coverage upload is a local/manual
 // step against a local SonarQube instance, not something CI needs to gate on.
 tasks.register<JacocoReport>("jacocoTestReport") {
+    group = "verification"
+    description = "Generates a JaCoCo coverage report from testDebugUnitTest, for local SonarQube analysis."
     dependsOn("testDebugUnitTest")
     reports {
         xml.required.set(true)
