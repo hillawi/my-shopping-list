@@ -14,12 +14,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
@@ -379,19 +381,33 @@ private fun OtpEntryForm(
 
     Spacer(modifier = Modifier.height(24.dp))
 
+    // The boxes fill and disable themselves the instant the code is complete, with no button
+    // press to visually anchor "something is happening" -- without this, a verify request in
+    // flight (or a slow network) reads as the screen having frozen instead.
+    if (isLoading) {
+        CircularProgressIndicator(modifier = Modifier.size(32.dp))
+        Spacer(modifier = Modifier.height(16.dp))
+    }
+
     if (message.isNotEmpty()) {
         Text(message, color = MaterialTheme.colorScheme.error)
         Spacer(modifier = Modifier.height(16.dp))
     }
 
-    TextButton(onClick = { handleResendOtpClick(email, context, scope, messageState) }) {
+    TextButton(
+        onClick = { handleResendOtpClick(email, context, scope, messageState) },
+        enabled = !isLoading
+    ) {
         Text(stringResource(R.string.resend_code))
     }
 
-    TextButton(onClick = {
-        pendingOtpEmailState.value = null
-        messageState.value = ""
-    }) {
+    TextButton(
+        onClick = {
+            pendingOtpEmailState.value = null
+            messageState.value = ""
+        },
+        enabled = !isLoading
+    ) {
         Text(stringResource(R.string.use_different_email))
     }
 }
