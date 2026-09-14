@@ -74,7 +74,7 @@ class SignUpOtpIntegrationTest {
         // (e.g. a broken signup that never even reaches GoTrue's OTP check).
         fetchOtpCodeFromMailpit(email)
 
-        val rejected = runCatching { client.auth.verifyEmailOtp(OtpType.Email.SIGNUP, email, "000000") }
+        val rejected = runCatching { client.auth.verifyEmailOtp(OtpType.Email.SIGNUP, email, "00000000") }
 
         assertTrue("a wrong code must be rejected", rejected.isFailure)
         val exception = rejected.exceptionOrNull()
@@ -83,8 +83,9 @@ class SignUpOtpIntegrationTest {
     }
 
     // Polls Mailpit's search API for the confirmation email sent to `email` and extracts the
-    // 6-digit OTP code from its plain-text body. A few retries absorb the small async delay
-    // between GoTrue sending the email and Mailpit indexing it for search.
+    // OTP code (matches local config.toml's auth.email.otp_length, kept aligned to production's
+    // real value) from its plain-text body. A few retries absorb the small async delay between
+    // GoTrue sending the email and Mailpit indexing it for search.
     private suspend fun fetchOtpCodeFromMailpit(email: String): String {
         val http = HttpClient(OkHttp)
         try {
@@ -95,7 +96,7 @@ class SignUpOtpIntegrationTest {
                 val messageId = Regex(""""ID":"([^"]+)"""").find(searchBody)?.groupValues?.get(1)
                 if (messageId != null) {
                     val messageBody = http.get("$MAILPIT_URL/api/v1/message/$messageId").bodyAsText()
-                    val code = Regex("""\b(\d{6})\b""").find(messageBody)?.groupValues?.get(1)
+                    val code = Regex("""\b(\d{8})\b""").find(messageBody)?.groupValues?.get(1)
                     if (code != null) return code
                 }
                 if (attempt < 9) delay(300)

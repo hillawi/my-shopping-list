@@ -12,7 +12,6 @@
     <string name="otp_title">Confirm your email</string>
     <string name="otp_description">We sent a code to %1$s. Enter it below to confirm your account.</string>
     <string name="otp_code_label">Code</string>
-    <string name="verify_button">Verify</string>
     <string name="resend_code">Resend code</string>
     <string name="resend_code_sent">A new code was sent.</string>
     <string name="use_different_email">Use a different email</string>

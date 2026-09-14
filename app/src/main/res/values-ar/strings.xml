@@ -12,7 +12,6 @@
     <string name="otp_title">تأكيد بريدك الإلكتروني</string>
     <string name="otp_description">أرسلنا رمزاً إلى %1$s. أدخله أدناه لتأكيد حسابك.</string>
     <string name="otp_code_label">الرمز</string>
-    <string name="verify_button">تحقق</string>
     <string name="resend_code">إعادة إرسال الرمز</string>
     <string name="resend_code_sent">تم إرسال رمز جديد.</string>
     <string name="use_different_email">استخدام بريد إلكتروني آخر</string>

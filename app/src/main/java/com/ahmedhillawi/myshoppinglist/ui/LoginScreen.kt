@@ -7,6 +7,7 @@ import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -23,16 +24,26 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -46,6 +57,11 @@ import io.github.jan.supabase.auth.exception.AuthRestException
 import io.github.jan.supabase.auth.providers.builtin.Email
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+
+// Matches production's real auth.email.otp_length (confirmed via `supabase config diff`; local
+// config.toml is kept aligned to it -- see its comment there) -- the number of boxes the OTP
+// entry UI renders.
+private const val OTP_LENGTH = 8
 
 // Maps a caught auth exception to a user-facing message, so a raw technical error (a Postgrest/
 // GoTrue error code or a network exception's message) never reaches the screen. The original
@@ -148,7 +164,8 @@ private fun handleVerifyOtpClick(
     scope: CoroutineScope,
     isLoading: MutableState<Boolean>,
     message: MutableState<String>,
-    pendingOtpEmail: MutableState<String?>
+    pendingOtpEmail: MutableState<String?>,
+    onInvalidCode: () -> Unit
 ) {
     if (code.isBlank()) {
         message.value = context.getString(R.string.auth_otp_missing_code_error)
@@ -171,6 +188,7 @@ private fun handleVerifyOtpClick(
             }
         } catch (e: Exception) {
             message.value = resolveAuthErrorMessage(context, e)
+            onInvalidCode()
         } finally {
             isLoading.value = false
         }
@@ -219,6 +237,59 @@ private fun LanguageToggleButton(modifier: Modifier = Modifier) {
     }
 }
 
+// One digit of the OTP code. A box moves focus to the next box as soon as a digit is typed, and
+// back to the previous box on backspace against an already-empty box (plain onValueChange never
+// fires for that -- deleting nothing produces the same empty string -- so it's caught via a raw
+// key event instead). Pasting/autofilling the whole code into one box is also handled: any extra
+// characters beyond the first spill forward into the following boxes.
+@Composable
+private fun OtpCodeBoxes(
+    digits: List<String>,
+    onDigitsChange: (index: Int, value: String) -> Unit,
+    focusRequesters: List<FocusRequester>,
+    enabled: Boolean
+) {
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        digits.forEachIndexed { index, digit ->
+            OutlinedTextField(
+                value = digit,
+                onValueChange = { newValue ->
+                    val typed = newValue.filter { it.isDigit() }
+                    if (typed.length <= 1) {
+                        onDigitsChange(index, typed)
+                        if (typed.isNotEmpty() && index < digits.lastIndex) {
+                            focusRequesters[index + 1].requestFocus()
+                        }
+                    } else {
+                        // Pasted/autofilled multiple digits starting at this box.
+                        typed.forEachIndexed { offset, c ->
+                            val target = index + offset
+                            if (target <= digits.lastIndex) onDigitsChange(target, c.toString())
+                        }
+                        focusRequesters[minOf(index + typed.length, digits.lastIndex)].requestFocus()
+                    }
+                },
+                enabled = enabled,
+                singleLine = true,
+                textStyle = MaterialTheme.typography.headlineSmall.copy(textAlign = TextAlign.Center),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                modifier = Modifier
+                    .weight(1f)
+                    .focusRequester(focusRequesters[index])
+                    .onPreviewKeyEvent { keyEvent ->
+                        if (keyEvent.type == KeyEventType.KeyDown && keyEvent.key == Key.Backspace && digit.isEmpty() && index > 0) {
+                            onDigitsChange(index - 1, "")
+                            focusRequesters[index - 1].requestFocus()
+                            true
+                        } else {
+                            false
+                        }
+                    }
+            )
+        }
+    }
+}
+
 // The OTP code-entry step shown right after sign-up, in place of the email/password fields.
 // Extracted out of LoginScreen to keep that composable's own cognitive complexity down.
 @Composable
@@ -232,7 +303,35 @@ private fun OtpEntryForm(
     message: String,
     pendingOtpEmailState: MutableState<String?>
 ) {
-    var code by remember { mutableStateOf("") }
+    val digits = remember { mutableStateListOf(*Array(OTP_LENGTH) { "" }) }
+    val focusRequesters = remember { List(OTP_LENGTH) { FocusRequester() } }
+    val code = digits.joinToString("")
+    var refocusFirstBox by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) { focusRequesters[0].requestFocus() }
+
+    // Auto-verify the moment every box is filled -- keyed on `code` so it only re-fires once the
+    // user actually changes a digit, not on every unrelated recomposition (e.g. isLoading
+    // flipping back to false after a failed attempt).
+    LaunchedEffect(code) {
+        if (code.length == OTP_LENGTH) {
+            handleVerifyOtpClick(email, code, context, scope, isLoadingState, messageState, pendingOtpEmailState) {
+                digits.indices.forEach { digits[it] = "" }
+                refocusFirstBox = true
+            }
+        }
+    }
+
+    // Boxes are disabled (enabled = !isLoading) while a verify request is in flight, so
+    // requesting focus right when the code fails would silently do nothing -- a disabled
+    // composable can't take focus. Deferred until isLoading actually flips back to false, which
+    // is when the boxes become focusable again.
+    LaunchedEffect(isLoading) {
+        if (!isLoading && refocusFirstBox) {
+            focusRequesters[0].requestFocus()
+            refocusFirstBox = false
+        }
+    }
 
     Text(stringResource(R.string.otp_title), style = MaterialTheme.typography.headlineSmall)
     Spacer(modifier = Modifier.height(8.dp))
@@ -242,12 +341,13 @@ private fun OtpEntryForm(
     )
     Spacer(modifier = Modifier.height(24.dp))
 
-    OutlinedTextField(
-        value = code,
-        onValueChange = { code = it },
-        label = { Text(stringResource(R.string.otp_code_label)) },
-        modifier = Modifier.fillMaxWidth(),
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword)
+    Text(stringResource(R.string.otp_code_label), style = MaterialTheme.typography.labelLarge)
+    Spacer(modifier = Modifier.height(8.dp))
+    OtpCodeBoxes(
+        digits = digits,
+        onDigitsChange = { index, value -> digits[index] = value },
+        focusRequesters = focusRequesters,
+        enabled = !isLoading
     )
 
     Spacer(modifier = Modifier.height(24.dp))
@@ -255,16 +355,6 @@ private fun OtpEntryForm(
     if (message.isNotEmpty()) {
         Text(message, color = MaterialTheme.colorScheme.error)
         Spacer(modifier = Modifier.height(16.dp))
-    }
-
-    Button(
-        onClick = {
-            handleVerifyOtpClick(email, code, context, scope, isLoadingState, messageState, pendingOtpEmailState)
-        },
-        modifier = Modifier.fillMaxWidth(),
-        enabled = !isLoading
-    ) {
-        Text(if (isLoading) "Loading..." else stringResource(R.string.verify_button))
     }
 
     TextButton(onClick = { handleResendOtpClick(email, context, scope, messageState) }) {
