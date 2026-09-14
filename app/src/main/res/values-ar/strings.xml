@@ -9,6 +9,16 @@
     <string name="auth_weak_password_error">كلمة المرور ضعيفة جداً. يجب أن تتكون من 6 أحرف على الأقل.</string>
     <string name="auth_email_invalid_error">لا يمكن استخدام هذا البريد الإلكتروني. تحقق من صحته، أو حاول تسجيل الدخول إذا كان لديك حساب بالفعل.</string>
     <string name="auth_generic_error">حدث خطأ ما. حاول مرة أخرى.</string>
+    <string name="otp_title">تأكيد بريدك الإلكتروني</string>
+    <string name="otp_description">أرسلنا رمزاً إلى %1$s. أدخله أدناه لتأكيد حسابك.</string>
+    <string name="otp_code_label">الرمز</string>
+    <string name="verify_button">تحقق</string>
+    <string name="resend_code">إعادة إرسال الرمز</string>
+    <string name="resend_code_sent">تم إرسال رمز جديد.</string>
+    <string name="use_different_email">استخدام بريد إلكتروني آخر</string>
+    <string name="auth_otp_invalid_error">هذا الرمز غير صحيح أو منتهي الصلاحية. اطلب رمزاً جديداً وحاول مرة أخرى.</string>
+    <string name="auth_otp_rate_limit_error">الرجاء الانتظار قليلاً قبل طلب رمز آخر.</string>
+    <string name="auth_otp_missing_code_error">الرجاء إدخال الرمز الذي أرسلناه إليك.</string>
     <string name="logout">تسجيل خروج</string>
     <string name="account_menu_item">الحساب</string>
     <string name="account_details_title">تفاصيل الحساب</string>

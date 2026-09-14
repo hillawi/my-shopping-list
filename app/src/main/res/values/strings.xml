@@ -9,6 +9,16 @@
     <string name="auth_weak_password_error">Password is too weak. It must be at least 6 characters long.</string>
     <string name="auth_email_invalid_error">This email can\'t be used. Check it\'s correct, or try signing in if you already have an account.</string>
     <string name="auth_generic_error">Something went wrong. Please try again.</string>
+    <string name="otp_title">Confirm your email</string>
+    <string name="otp_description">We sent a code to %1$s. Enter it below to confirm your account.</string>
+    <string name="otp_code_label">Code</string>
+    <string name="verify_button">Verify</string>
+    <string name="resend_code">Resend code</string>
+    <string name="resend_code_sent">A new code was sent.</string>
+    <string name="use_different_email">Use a different email</string>
+    <string name="auth_otp_invalid_error">That code is incorrect or has expired. Request a new one and try again.</string>
+    <string name="auth_otp_rate_limit_error">Please wait a bit before requesting another code.</string>
+    <string name="auth_otp_missing_code_error">Please enter the code we emailed you.</string>
     <string name="logout">Logout</string>
     <string name="account_menu_item">Account</string>
     <string name="account_details_title">Account details</string>

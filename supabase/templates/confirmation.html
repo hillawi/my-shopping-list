@@ -1,8 +1,13 @@
 <!--
   Supabase Auth "Confirm signup" email template.
-  Template variables available here: {{ .ConfirmationURL }}, {{ .Email }}, {{ .SiteURL }}.
+  Template variables available here: {{ .Token }}, {{ .ConfirmationURL }}, {{ .Email }}, {{ .SiteURL }}.
   Kept table-based with inline styles only (no external CSS/images) since email clients strip
   <style> blocks and block remote images by default.
+
+  {{ .Token }} is the OTP code -- the primary flow: the app shows a code-entry screen right after
+  sign-up, so the user can read this on any device and type it into the one place that matters,
+  instead of the confirmation link only working if opened on the same device the app is installed
+  on. The link stays below as a fallback for anyone who'd rather tap through.
 -->
 <html>
   <body style="margin:0; padding:0; background-color:#f4f4f7;">
@@ -20,20 +25,37 @@
               <td style="padding:32px 32px 8px 32px; color:#1c1b1f;">
                 <h1 style="font-size:20px; margin:0 0 16px 0;">Confirm your email</h1>
                 <p style="font-size:15px; line-height:1.5; margin:0 0 24px 0; color:#49454f;">
-                  Thanks for signing up! Tap the button below to confirm your email address and start using MyShoppingList.
+                  Thanks for signing up! Enter this code in the app to confirm your email address and start using MyShoppingList.
                 </p>
               </td>
             </tr>
             <tr>
               <td align="center" style="padding:0 32px 32px 32px;">
+                <div style="display:inline-block; background-color:#f4f4f7; border-radius:12px; padding:16px 24px; font-size:32px; font-weight:bold; letter-spacing:8px; color:#3f51b5;">
+                  {{ .Token }}
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:0 32px 24px 32px; color:#79747e; font-size:13px; line-height:1.5; text-align:center;">
+                This code expires soon, so enter it while the app's still open to the sign-up screen.
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:0 32px 8px 32px;">
+                <hr style="border:none; border-top:1px solid #ececec; margin:0;" />
+              </td>
+            </tr>
+            <tr>
+              <td align="center" style="padding:16px 32px 8px 32px;">
                 <a href="{{ .ConfirmationURL }}" style="display:inline-block; background-color:#3f51b5; color:#ffffff; text-decoration:none; font-size:16px; font-weight:bold; padding:14px 32px; border-radius:24px;">
-                  Confirm email
+                  Or tap to confirm instead
                 </a>
               </td>
             </tr>
             <tr>
               <td style="padding:0 32px 32px 32px; color:#79747e; font-size:13px; line-height:1.5;">
-                <p style="margin:0 0 8px 0;">If the button doesn't work, copy and paste this link into your browser:</p>
+                <p style="margin:0 0 8px 0;">Only works if opened on the same device MyShoppingList is installed on. If the button doesn't work, copy and paste this link into your browser:</p>
                 <p style="margin:0; word-break:break-all;"><a href="{{ .ConfirmationURL }}" style="color:#3f51b5;">{{ .ConfirmationURL }}</a></p>
               </td>
             </tr>

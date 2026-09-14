@@ -38,6 +38,8 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.ahmedhillawi.myshoppinglist.R
 import com.ahmedhillawi.myshoppinglist.supabase
+import io.github.jan.supabase.auth.OtpType
+import io.github.jan.supabase.auth.OtpVerifyResult
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.exception.AuthErrorCode
 import io.github.jan.supabase.auth.exception.AuthRestException
@@ -59,6 +61,10 @@ private fun resolveAuthErrorMessage(context: Context, e: Exception): String {
         // Also returned by production for a pre-existing but never-confirmed account, not just
         // placeholder domains like @example.com — worded to cover both without claiming either.
         AuthErrorCode.EmailAddressInvalid -> context.getString(R.string.auth_email_invalid_error)
+        // GoTrue returns this single code for both an expired AND a wrong OTP -- there's no
+        // separate "invalid" code, so the message covers both without claiming either.
+        AuthErrorCode.OtpExpired -> context.getString(R.string.auth_otp_invalid_error)
+        AuthErrorCode.OverEmailSendRateLimit -> context.getString(R.string.auth_otp_rate_limit_error)
         else -> context.getString(R.string.auth_generic_error)
     }
 }
@@ -109,7 +115,8 @@ private fun handleSignUpClick(
     context: Context,
     scope: CoroutineScope,
     message: MutableState<String>,
-    showValidationError: MutableState<Boolean>
+    showValidationError: MutableState<Boolean>,
+    pendingOtpEmail: MutableState<String?>
 ) {
     if (email.isBlank() || password.isBlank()) {
         showValidationError.value = true
@@ -123,7 +130,63 @@ private fun handleSignUpClick(
                 this.email = email
                 this.password = password
             }
-            message.value = context.getString(R.string.account_created_check_email)
+            // signUpWith never throws and never establishes a session when email confirmation is
+            // required (confirmed against the SDK's behavior) -- it just returns, so the OTP step
+            // always follows a successful call here rather than branching on session state.
+            message.value = ""
+            pendingOtpEmail.value = email
+        } catch (e: Exception) {
+            message.value = resolveAuthErrorMessage(context, e)
+        }
+    }
+}
+
+private fun handleVerifyOtpClick(
+    email: String,
+    code: String,
+    context: Context,
+    scope: CoroutineScope,
+    isLoading: MutableState<Boolean>,
+    message: MutableState<String>,
+    pendingOtpEmail: MutableState<String?>
+) {
+    if (code.isBlank()) {
+        message.value = context.getString(R.string.auth_otp_missing_code_error)
+        return
+    }
+    scope.launch {
+        isLoading.value = true
+        try {
+            when (supabase.auth.verifyEmailOtp(OtpType.Email.SIGNUP, email, code)) {
+                is OtpVerifyResult.Authenticated -> {
+                    // No manual navigation needed -- MainActivity observes sessionStatus and
+                    // switches off LoginScreen once it flips to Authenticated.
+                }
+                OtpVerifyResult.VerifiedNoSession -> {
+                    // Not expected for the SIGNUP type (confirming a new account should always
+                    // hand back a session), but handled defensively rather than assumed away.
+                    pendingOtpEmail.value = null
+                    message.value = context.getString(R.string.auth_invalid_credentials_error)
+                }
+            }
+        } catch (e: Exception) {
+            message.value = resolveAuthErrorMessage(context, e)
+        } finally {
+            isLoading.value = false
+        }
+    }
+}
+
+private fun handleResendOtpClick(
+    email: String,
+    context: Context,
+    scope: CoroutineScope,
+    message: MutableState<String>
+) {
+    scope.launch {
+        try {
+            supabase.auth.resendEmail(OtpType.Email.SIGNUP, email)
+            message.value = context.getString(R.string.resend_code_sent)
         } catch (e: Exception) {
             message.value = resolveAuthErrorMessage(context, e)
         }
@@ -156,6 +219,66 @@ private fun LanguageToggleButton(modifier: Modifier = Modifier) {
     }
 }
 
+// The OTP code-entry step shown right after sign-up, in place of the email/password fields.
+// Extracted out of LoginScreen to keep that composable's own cognitive complexity down.
+@Composable
+private fun OtpEntryForm(
+    email: String,
+    context: Context,
+    scope: CoroutineScope,
+    isLoadingState: MutableState<Boolean>,
+    isLoading: Boolean,
+    messageState: MutableState<String>,
+    message: String,
+    pendingOtpEmailState: MutableState<String?>
+) {
+    var code by remember { mutableStateOf("") }
+
+    Text(stringResource(R.string.otp_title), style = MaterialTheme.typography.headlineSmall)
+    Spacer(modifier = Modifier.height(8.dp))
+    Text(
+        stringResource(R.string.otp_description, email),
+        color = MaterialTheme.colorScheme.onSurfaceVariant
+    )
+    Spacer(modifier = Modifier.height(24.dp))
+
+    OutlinedTextField(
+        value = code,
+        onValueChange = { code = it },
+        label = { Text(stringResource(R.string.otp_code_label)) },
+        modifier = Modifier.fillMaxWidth(),
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword)
+    )
+
+    Spacer(modifier = Modifier.height(24.dp))
+
+    if (message.isNotEmpty()) {
+        Text(message, color = MaterialTheme.colorScheme.error)
+        Spacer(modifier = Modifier.height(16.dp))
+    }
+
+    Button(
+        onClick = {
+            handleVerifyOtpClick(email, code, context, scope, isLoadingState, messageState, pendingOtpEmailState)
+        },
+        modifier = Modifier.fillMaxWidth(),
+        enabled = !isLoading
+    ) {
+        Text(if (isLoading) "Loading..." else stringResource(R.string.verify_button))
+    }
+
+    TextButton(onClick = { handleResendOtpClick(email, context, scope, messageState) }) {
+        Text(stringResource(R.string.resend_code))
+    }
+
+    TextButton(onClick = {
+        pendingOtpEmailState.value = null
+        messageState.value = ""
+    }) {
+        Text(stringResource(R.string.use_different_email))
+    }
+}
+
 @Composable
 fun LoginScreen() {
     var email by remember { mutableStateOf("") }
@@ -166,6 +289,8 @@ fun LoginScreen() {
     val message by messageState
     val showValidationErrorState = remember { mutableStateOf(false) }
     val showValidationError by showValidationErrorState
+    val pendingOtpEmailState = remember { mutableStateOf<String?>(null) }
+    val pendingOtpEmail by pendingOtpEmailState
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
@@ -177,6 +302,12 @@ fun LoginScreen() {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
+            val otpEmail = pendingOtpEmail
+            if (otpEmail != null) {
+                OtpEntryForm(otpEmail, context, scope, isLoadingState, isLoading, messageState, message, pendingOtpEmailState)
+                return@Column
+            }
+
             Text(stringResource(R.string.app_name), style = MaterialTheme.typography.headlineMedium)
             Spacer(modifier = Modifier.height(32.dp))
 
@@ -222,7 +353,7 @@ fun LoginScreen() {
 
             // Sign Up Button
             TextButton(onClick = {
-                handleSignUpClick(email, password, context, scope, messageState, showValidationErrorState)
+                handleSignUpClick(email, password, context, scope, messageState, showValidationErrorState, pendingOtpEmailState)
             }) {
                 Text(stringResource(R.string.create_account))
             }
