@@ -185,9 +185,15 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel, household: Household, h
                     onConfirm = {
                         scope.launch {
                             isDeletingAccount = true
-                            deleteAccount(context)
+                            val deleted = deleteAccount(context)
                             isDeletingAccount = false
-                            showDeleteAccountConfirm = false
+                            // Leave the dialog open on failure so the error toast has context and
+                            // the user can just retry; on success MainActivity takes over anyway
+                            // once signOut() flips sessionStatus, but close it explicitly too so
+                            // there's no one-frame flash of the confirm dialog over LoginScreen.
+                            if (deleted) {
+                                showDeleteAccountConfirm = false
+                            }
                         }
                     },
                     onDismiss = { showDeleteAccountConfirm = false }
@@ -229,14 +235,17 @@ private fun copyInviteCodeToClipboard(context: Context, clipboard: Clipboard, sc
     }
 }
 
-private suspend fun deleteAccount(context: Context) {
-    try {
+private suspend fun deleteAccount(context: Context): Boolean {
+    return try {
         supabase.functions("delete-account")
         supabase.auth.signOut()
+        Toast.makeText(context, context.getString(R.string.delete_account_success_toast), Toast.LENGTH_LONG).show()
+        true
     } catch (e: CancellationException) {
         throw e
     } catch (e: Exception) {
         Toast.makeText(context, context.getString(R.string.delete_account_error_toast), Toast.LENGTH_SHORT).show()
+        false
     }
 }
 
