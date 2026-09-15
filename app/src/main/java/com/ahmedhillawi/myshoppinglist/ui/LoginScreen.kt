@@ -49,6 +49,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.key
@@ -57,6 +58,7 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.input.KeyboardType
@@ -761,6 +763,16 @@ fun LoginScreen() {
                 modifier = Modifier.fillMaxWidth(),
                 enabled = !isLoading
             ) {
+                // Google's brand guidelines call for their actual multi-color "G" mark on a sign-in
+                // button, not a generic/tinted icon -- Material Icons Extended (already a dependency
+                // here) has no brand logos, hence the dedicated drawable instead.
+                Icon(
+                    painter = painterResource(R.drawable.ic_google_logo),
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                    tint = Color.Unspecified
+                )
+                Spacer(modifier = Modifier.width(8.dp))
                 Text(stringResource(R.string.continue_with_google))
             }
 
