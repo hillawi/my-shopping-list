@@ -82,9 +82,13 @@ fun newTestClient(): SupabaseClient = createSupabaseClient(
 // establish a session here -- this bypasses that confirmation step server-side via the Admin API
 // (the same service-role pattern the delete-account Edge Function uses) rather than making every
 // other integration test read a real email, since confirming-for-real isn't what they're testing.
-suspend fun SupabaseClient.signUpRandomUser(): String {
-    val email = "test-${System.nanoTime()}@example.com"
-    val password = "password123"
+suspend fun SupabaseClient.signUpRandomUser(): String =
+    signUpConfirmedUser("test-${System.nanoTime()}@example.com", "password123")
+
+// Same bypass as signUpRandomUser(), but lets the caller supply (and thus keep) the email --
+// needed by tests that sign in again afterward with a different password (e.g. after a reset),
+// since signUpRandomUser() only ever hands back the user id, not the email it generated.
+suspend fun SupabaseClient.signUpConfirmedUser(email: String, password: String): String {
     val userInfo = auth.signUpWith(Email) {
         this.email = email
         this.password = password

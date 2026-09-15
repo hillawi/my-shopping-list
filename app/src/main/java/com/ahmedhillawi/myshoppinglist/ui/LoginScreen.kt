@@ -56,6 +56,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ahmedhillawi.myshoppinglist.R
+import com.ahmedhillawi.myshoppinglist.isPasswordRecoveryInProgress
 import com.ahmedhillawi.myshoppinglist.supabase
 import io.github.jan.supabase.auth.OtpType
 import io.github.jan.supabase.auth.OtpVerifyResult
@@ -89,6 +90,7 @@ private fun resolveAuthErrorMessage(context: Context, e: Exception): String {
         // separate "invalid" code, so the message covers both without claiming either.
         AuthErrorCode.OtpExpired -> context.getString(R.string.auth_otp_invalid_error)
         AuthErrorCode.OverEmailSendRateLimit -> context.getString(R.string.auth_otp_rate_limit_error)
+        AuthErrorCode.SamePassword -> context.getString(R.string.auth_same_password_error)
         else -> context.getString(R.string.auth_generic_error)
     }
 }
@@ -168,11 +170,13 @@ private fun handleSignUpClick(
 private fun handleVerifyOtpClick(
     email: String,
     code: String,
+    purpose: OtpType.Email,
     context: Context,
     scope: CoroutineScope,
     isLoading: MutableState<Boolean>,
     message: MutableState<String>,
     pendingOtpEmail: MutableState<String?>,
+    onAuthenticated: () -> Unit,
     onInvalidCode: () -> Unit
 ) {
     if (code.isBlank()) {
@@ -182,14 +186,11 @@ private fun handleVerifyOtpClick(
     scope.launch {
         isLoading.value = true
         try {
-            when (supabase.auth.verifyEmailOtp(OtpType.Email.SIGNUP, email, code)) {
-                is OtpVerifyResult.Authenticated -> {
-                    // No manual navigation needed -- MainActivity observes sessionStatus and
-                    // switches off LoginScreen once it flips to Authenticated.
-                }
+            when (supabase.auth.verifyEmailOtp(purpose, email, code)) {
+                is OtpVerifyResult.Authenticated -> onAuthenticated()
                 OtpVerifyResult.VerifiedNoSession -> {
-                    // Not expected for the SIGNUP type (confirming a new account should always
-                    // hand back a session), but handled defensively rather than assumed away.
+                    // Not expected for either SIGNUP or RECOVERY (both should always hand back a
+                    // session), but handled defensively rather than assumed away.
                     pendingOtpEmail.value = null
                     message.value = context.getString(R.string.auth_invalid_credentials_error)
                 }
@@ -205,16 +206,82 @@ private fun handleVerifyOtpClick(
 
 private fun handleResendOtpClick(
     email: String,
+    purpose: OtpType.Email,
     context: Context,
     scope: CoroutineScope,
     message: MutableState<String>
 ) {
     scope.launch {
         try {
-            supabase.auth.resendEmail(OtpType.Email.SIGNUP, email)
+            // Recovery codes aren't a "pending signup" style state GoTrue's resend endpoint is
+            // documented for -- resetPasswordForEmail is the certain way to get a fresh one,
+            // and it's exactly the same call the initial "forgot password" tap already makes.
+            if (purpose == OtpType.Email.RECOVERY) {
+                supabase.auth.resetPasswordForEmail(email)
+            } else {
+                supabase.auth.resendEmail(purpose, email)
+            }
             message.value = context.getString(R.string.resend_code_sent)
         } catch (e: Exception) {
             message.value = resolveAuthErrorMessage(context, e)
+        }
+    }
+}
+
+private fun handleForgotPasswordClick(
+    email: String,
+    context: Context,
+    scope: CoroutineScope,
+    message: MutableState<String>,
+    pendingOtpEmail: MutableState<String?>,
+    otpPurpose: MutableState<OtpType.Email>
+) {
+    if (email.isBlank()) {
+        message.value = context.getString(R.string.auth_forgot_password_missing_email_error)
+        return
+    }
+    scope.launch {
+        try {
+            supabase.auth.resetPasswordForEmail(email)
+            message.value = ""
+            otpPurpose.value = OtpType.Email.RECOVERY
+            // Set now, not just after the code is verified -- belt-and-suspenders against
+            // MainActivity ever seeing a session appear mid-flow before the guard further down
+            // has a chance to run. See SupabaseClient.kt's doc comment on this flag.
+            isPasswordRecoveryInProgress.value = true
+            pendingOtpEmail.value = email
+        } catch (e: Exception) {
+            message.value = resolveAuthErrorMessage(context, e)
+        }
+    }
+}
+
+private fun handleSetNewPasswordClick(
+    newPassword: String,
+    confirmPassword: String,
+    context: Context,
+    scope: CoroutineScope,
+    isLoading: MutableState<Boolean>,
+    message: MutableState<String>,
+    onSuccess: () -> Unit
+) {
+    if (newPassword.isBlank() || confirmPassword.isBlank()) {
+        message.value = context.getString(R.string.auth_missing_fields_error)
+        return
+    }
+    if (newPassword != confirmPassword) {
+        message.value = context.getString(R.string.auth_password_mismatch_error)
+        return
+    }
+    scope.launch {
+        isLoading.value = true
+        try {
+            supabase.auth.updateUser { password = newPassword }
+            onSuccess()
+        } catch (e: Exception) {
+            message.value = resolveAuthErrorMessage(context, e)
+        } finally {
+            isLoading.value = false
         }
     }
 }
@@ -324,13 +391,15 @@ private fun OtpCodeBoxes(
 @Composable
 private fun OtpEntryForm(
     email: String,
+    purpose: OtpType.Email,
     context: Context,
     scope: CoroutineScope,
     isLoadingState: MutableState<Boolean>,
     isLoading: Boolean,
     messageState: MutableState<String>,
     message: String,
-    pendingOtpEmailState: MutableState<String?>
+    pendingOtpEmailState: MutableState<String?>,
+    onAuthenticated: () -> Unit
 ) {
     val digits = remember { mutableStateListOf(*Array(OTP_LENGTH) { "" }) }
     val focusRequesters = remember { List(OTP_LENGTH) { FocusRequester() } }
@@ -344,7 +413,7 @@ private fun OtpEntryForm(
     // flipping back to false after a failed attempt).
     LaunchedEffect(code) {
         if (code.length == OTP_LENGTH) {
-            handleVerifyOtpClick(email, code, context, scope, isLoadingState, messageState, pendingOtpEmailState) {
+            handleVerifyOtpClick(email, code, purpose, context, scope, isLoadingState, messageState, pendingOtpEmailState, onAuthenticated) {
                 digits.indices.forEach { digits[it] = "" }
                 refocusFirstBox = true
             }
@@ -362,10 +431,13 @@ private fun OtpEntryForm(
         }
     }
 
-    Text(stringResource(R.string.otp_title), style = MaterialTheme.typography.headlineSmall)
+    val titleRes = if (purpose == OtpType.Email.RECOVERY) R.string.reset_password_otp_title else R.string.otp_title
+    val descriptionRes = if (purpose == OtpType.Email.RECOVERY) R.string.reset_password_otp_description else R.string.otp_description
+
+    Text(stringResource(titleRes), style = MaterialTheme.typography.headlineSmall)
     Spacer(modifier = Modifier.height(8.dp))
     Text(
-        stringResource(R.string.otp_description, email),
+        stringResource(descriptionRes, email),
         color = MaterialTheme.colorScheme.onSurfaceVariant
     )
     Spacer(modifier = Modifier.height(24.dp))
@@ -395,7 +467,7 @@ private fun OtpEntryForm(
     }
 
     TextButton(
-        onClick = { handleResendOtpClick(email, context, scope, messageState) },
+        onClick = { handleResendOtpClick(email, purpose, context, scope, messageState) },
         enabled = !isLoading
     ) {
         Text(stringResource(R.string.resend_code))
@@ -405,10 +477,75 @@ private fun OtpEntryForm(
         onClick = {
             pendingOtpEmailState.value = null
             messageState.value = ""
+            // Abandoning a recovery flow mid-code -- release the guard so a normal sign-in works
+            // immediately afterward instead of getting stuck showing LoginScreen forever.
+            if (purpose == OtpType.Email.RECOVERY) isPasswordRecoveryInProgress.value = false
         },
         enabled = !isLoading
     ) {
         Text(stringResource(R.string.use_different_email))
+    }
+}
+
+// The final step of the password-reset flow, shown after the recovery code is verified.
+// Extracted out of LoginScreen to keep that composable's own cognitive complexity down.
+@Composable
+private fun SetNewPasswordForm(
+    context: Context,
+    scope: CoroutineScope,
+    isLoadingState: MutableState<Boolean>,
+    isLoading: Boolean,
+    messageState: MutableState<String>,
+    message: String,
+    onSuccess: () -> Unit
+) {
+    var newPassword by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
+
+    Text(stringResource(R.string.new_password_label), style = MaterialTheme.typography.headlineSmall)
+    Spacer(modifier = Modifier.height(24.dp))
+
+    OutlinedTextField(
+        value = newPassword,
+        onValueChange = { newPassword = it },
+        label = { Text(stringResource(R.string.new_password_label)) },
+        modifier = Modifier.fillMaxWidth(),
+        enabled = !isLoading,
+        visualTransformation = PasswordVisualTransformation(),
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
+    )
+
+    Spacer(modifier = Modifier.height(16.dp))
+
+    OutlinedTextField(
+        value = confirmPassword,
+        onValueChange = { confirmPassword = it },
+        label = { Text(stringResource(R.string.confirm_new_password_label)) },
+        modifier = Modifier.fillMaxWidth(),
+        enabled = !isLoading,
+        visualTransformation = PasswordVisualTransformation(),
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
+    )
+
+    Spacer(modifier = Modifier.height(24.dp))
+
+    if (message.isNotEmpty()) {
+        Text(message, color = MaterialTheme.colorScheme.error)
+        Spacer(modifier = Modifier.height(16.dp))
+    }
+
+    Button(
+        onClick = {
+            handleSetNewPasswordClick(newPassword, confirmPassword, context, scope, isLoadingState, messageState, onSuccess)
+        },
+        modifier = Modifier.fillMaxWidth(),
+        enabled = !isLoading
+    ) {
+        if (isLoading) {
+            CircularProgressIndicator(modifier = Modifier.size(20.dp), color = MaterialTheme.colorScheme.onPrimary)
+        } else {
+            Text(stringResource(R.string.update_password_button))
+        }
     }
 }
 
@@ -424,6 +561,9 @@ fun LoginScreen() {
     val showValidationError by showValidationErrorState
     val pendingOtpEmailState = remember { mutableStateOf<String?>(null) }
     val pendingOtpEmail by pendingOtpEmailState
+    val otpPurposeState = remember { mutableStateOf(OtpType.Email.SIGNUP) }
+    val otpPurpose by otpPurposeState
+    var showSetNewPassword by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
@@ -435,9 +575,27 @@ fun LoginScreen() {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
+            if (showSetNewPassword) {
+                SetNewPasswordForm(context, scope, isLoadingState, isLoading, messageState, message) {
+                    showSetNewPassword = false
+                    messageState.value = ""
+                    // Only now is it safe for MainActivity to act on the session verifyEmailOtp
+                    // already established -- see SupabaseClient.kt's doc comment on this flag.
+                    isPasswordRecoveryInProgress.value = false
+                }
+                return@Column
+            }
+
             val otpEmail = pendingOtpEmail
             if (otpEmail != null) {
-                OtpEntryForm(otpEmail, context, scope, isLoadingState, isLoading, messageState, message, pendingOtpEmailState)
+                OtpEntryForm(otpEmail, otpPurpose, context, scope, isLoadingState, isLoading, messageState, message, pendingOtpEmailState) {
+                    if (otpPurpose == OtpType.Email.RECOVERY) {
+                        pendingOtpEmailState.value = null
+                        showSetNewPassword = true
+                    }
+                    // Nothing to do for SIGNUP -- MainActivity observes sessionStatus and
+                    // switches off LoginScreen once it flips to Authenticated.
+                }
                 return@Column
             }
 
@@ -489,6 +647,12 @@ fun LoginScreen() {
                 handleSignUpClick(email, password, context, scope, messageState, showValidationErrorState, pendingOtpEmailState)
             }) {
                 Text(stringResource(R.string.create_account))
+            }
+
+            TextButton(onClick = {
+                handleForgotPasswordClick(email, context, scope, messageState, pendingOtpEmailState, otpPurposeState)
+            }) {
+                Text(stringResource(R.string.forgot_password))
             }
         }
     }

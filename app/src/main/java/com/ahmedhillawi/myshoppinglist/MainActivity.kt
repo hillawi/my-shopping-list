@@ -42,11 +42,20 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             val sessionStatus by supabase.auth.sessionStatus.collectAsState()
+            val recoveryInProgress by isPasswordRecoveryInProgress
 
             MyShoppingListTheme() {
                 Surface(color = MaterialTheme.colorScheme.background) {
-                    when(sessionStatus) {
-                        is SessionStatus.Authenticated -> {
+                    when {
+                        // Combined into one condition (rather than a separate recoveryInProgress
+                        // branch above this one) deliberately: LoginScreen() must stay the exact
+                        // same call site while `recoveryInProgress` flips from false to true mid
+                        // flow, or Compose treats the switch between `when` branches as leaving
+                        // one group and entering another, disposing LoginScreen's remembered
+                        // state (the pending OTP email, everything) and remounting it from
+                        // scratch right as the OTP screen should appear.
+                        recoveryInProgress || sessionStatus !is SessionStatus.Authenticated -> LoginScreen()
+                        else -> {
                             val householdViewModel: HouseholdViewModel by viewModels()
                             val household by householdViewModel.household.collectAsState()
                             val isLoadingHousehold by householdViewModel.isLoading.collectAsState()
@@ -91,9 +100,6 @@ class MainActivity : ComponentActivity() {
                                     ShoppingListScreen(viewModel, currentHousehold, householdViewModel)
                                 }
                             }
-                        }
-                        else -> {
-                            LoginScreen()
                         }
                     }
                 }

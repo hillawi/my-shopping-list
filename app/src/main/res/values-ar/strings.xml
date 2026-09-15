@@ -18,6 +18,15 @@
     <string name="auth_otp_invalid_error">هذا الرمز غير صحيح أو منتهي الصلاحية. اطلب رمزاً جديداً وحاول مرة أخرى.</string>
     <string name="auth_otp_rate_limit_error">الرجاء الانتظار قليلاً قبل طلب رمز آخر.</string>
     <string name="auth_otp_missing_code_error">الرجاء إدخال الرمز الذي أرسلناه إليك.</string>
+    <string name="forgot_password">نسيت كلمة المرور؟</string>
+    <string name="auth_forgot_password_missing_email_error">الرجاء إدخال بريدك الإلكتروني أولاً.</string>
+    <string name="reset_password_otp_title">إعادة تعيين كلمة المرور</string>
+    <string name="reset_password_otp_description">أرسلنا رمزاً إلى %1$s. أدخله أدناه للمتابعة.</string>
+    <string name="new_password_label">كلمة المرور الجديدة</string>
+    <string name="confirm_new_password_label">تأكيد كلمة المرور الجديدة</string>
+    <string name="update_password_button">تحديث كلمة المرور</string>
+    <string name="auth_password_mismatch_error">كلمتا المرور غير متطابقتين.</string>
+    <string name="auth_same_password_error">الرجاء اختيار كلمة مرور مختلفة عن كلمة مرورك الحالية.</string>
     <string name="logout">تسجيل خروج</string>
     <string name="account_menu_item">الحساب</string>
     <string name="account_details_title">تفاصيل الحساب</string>
