@@ -1,5 +1,6 @@
 package com.ahmedhillawi.myshoppinglist
 
+import androidx.compose.runtime.mutableStateOf
 import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.functions.Functions
@@ -24,3 +25,11 @@ val supabase = createSupabaseClient(
         host = "login-callback"
     }
 }
+
+// Set the moment a password-reset OTP is verified (which immediately establishes a real
+// session, same as any other sign-in), cleared only once the user actually finishes setting a
+// new password. MainActivity checks this before its normal session-based navigation, so a
+// mid-recovery session doesn't jump straight into the app before the user ever changes their
+// password -- there's no way to tell a recovery session apart from a normal one after the fact,
+// so this is tracked explicitly instead. See LoginScreen.kt's password-reset flow.
+val isPasswordRecoveryInProgress = mutableStateOf(false)

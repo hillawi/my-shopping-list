@@ -18,6 +18,15 @@
     <string name="auth_otp_invalid_error">That code is incorrect or has expired. Request a new one and try again.</string>
     <string name="auth_otp_rate_limit_error">Please wait a bit before requesting another code.</string>
     <string name="auth_otp_missing_code_error">Please enter the code we emailed you.</string>
+    <string name="forgot_password">Forgot password?</string>
+    <string name="auth_forgot_password_missing_email_error">Please enter your email first.</string>
+    <string name="reset_password_otp_title">Reset your password</string>
+    <string name="reset_password_otp_description">We sent a code to %1$s. Enter it below to continue.</string>
+    <string name="new_password_label">New password</string>
+    <string name="confirm_new_password_label">Confirm new password</string>
+    <string name="update_password_button">Update Password</string>
+    <string name="auth_password_mismatch_error">Passwords don\'t match.</string>
+    <string name="auth_same_password_error">Please choose a different password than your current one.</string>
     <string name="logout">Logout</string>
     <string name="account_menu_item">Account</string>
     <string name="account_details_title">Account details</string>
