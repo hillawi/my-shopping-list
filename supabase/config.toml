@@ -343,6 +343,21 @@ skip_nonce_check = false
 # If enabled, it will allow the user to successfully authenticate when the provider does not return an email address.
 email_optional = false
 
+# Native "Continue with Google" via Android's Credential Manager (see LoginScreen.kt's
+# handleGoogleSignInClick) -- no browser redirect, so redirect_uri/url below are left at their
+# scaffold defaults. client_id is the OAuth 2.0 "Web application" client from Google Cloud
+# Console (Credential Manager calls it the serverClientId) -- GoTrue checks the Google ID token's
+# aud claim against this same value, so it has to be the Web client, not the Android one.
+[auth.external.google]
+enabled = true
+client_id = "168994394505-91kc001ul4rqltovea0j4hmcpohp8v7s.apps.googleusercontent.com"
+# DO NOT commit your OAuth provider secret to git. Use environment variable substitution instead:
+secret = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET)"
+redirect_uri = ""
+url = ""
+skip_nonce_check = false
+email_optional = false
+
 # Allow Solana wallet holders to sign in to your project via the Sign in with Solana (SIWS, EIP-4361) standard.
 # You can configure "web3" rate limit in the [auth.rate_limit] section and set up [auth.captcha] if self-hosting.
 [auth.web3.solana]

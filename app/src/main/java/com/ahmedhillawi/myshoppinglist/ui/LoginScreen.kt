@@ -4,6 +4,12 @@ import android.app.LocaleManager
 import android.content.Context
 import android.os.LocaleList
 import android.util.Log
+import androidx.credentials.CredentialManager
+import androidx.credentials.CustomCredential
+import androidx.credentials.GetCredentialRequest
+import androidx.credentials.exceptions.GetCredentialException
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -25,6 +31,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -42,6 +49,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.key
@@ -50,12 +58,14 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ahmedhillawi.myshoppinglist.BuildConfig
 import com.ahmedhillawi.myshoppinglist.R
 import com.ahmedhillawi.myshoppinglist.isPasswordRecoveryInProgress
 import com.ahmedhillawi.myshoppinglist.supabase
@@ -64,9 +74,13 @@ import io.github.jan.supabase.auth.OtpVerifyResult
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.exception.AuthErrorCode
 import io.github.jan.supabase.auth.exception.AuthRestException
+import io.github.jan.supabase.auth.providers.Google
 import io.github.jan.supabase.auth.providers.builtin.Email
+import io.github.jan.supabase.auth.providers.builtin.IDToken
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import java.security.MessageDigest
+import java.util.UUID
 
 // Matches production's real auth.email.otp_length (confirmed via `supabase config diff`; local
 // config.toml is kept aligned to it -- see its comment there) -- the number of boxes the OTP
@@ -142,6 +156,70 @@ private fun handleSignInClick(
                 this.password = password
             }
             // No need to navigate manually; MainActivity observes the session change
+        } catch (e: Exception) {
+            message.value = AuthMessage(resolveAuthErrorMessage(context, e))
+        } finally {
+            isLoading.value = false
+        }
+    }
+}
+
+// SHA-256 of the raw nonce, hex-encoded -- Google's ID token embeds only the hashed form, but
+// GoTrue's IDToken.Config expects the original raw value to hash and compare itself. Sending the
+// same value to both sides would make GoTrue's check compare a hash against a raw string and
+// always fail.
+private fun sha256Hex(input: String): String =
+    MessageDigest.getInstance("SHA-256").digest(input.toByteArray())
+        .joinToString("") { "%02x".format(it) }
+
+// Native "Sign in with Google" via Credential Manager -- shows the system account picker
+// in-process (no browser, no deep link) and hands the resulting Google ID token straight to
+// Supabase's IDToken provider. GoTrue creates the user automatically on a first-time Google
+// sign-in, same as it already does for a first-time email sign-up.
+private fun handleGoogleSignInClick(
+    context: Context,
+    scope: CoroutineScope,
+    isLoading: MutableState<Boolean>,
+    message: MutableState<AuthMessage>
+) {
+    // GoTrue's id_token grant checks the ID token's nonce claim against what the client reports,
+    // to stop a captured token from being replayed into a different sign-in attempt. Google's
+    // API takes the hashed nonce (it goes into the token as-is); Supabase's config takes the raw
+    // one and hashes it itself to compare -- see the Supabase docs on signInWithIdToken's nonce
+    // handling for exactly this asymmetry.
+    val rawNonce = UUID.randomUUID().toString()
+    val hashedNonce = sha256Hex(rawNonce)
+
+    val googleIdOption = GetGoogleIdOption.Builder()
+        .setFilterByAuthorizedAccounts(false)
+        .setServerClientId(BuildConfig.GOOGLE_WEB_CLIENT_ID)
+        .setNonce(hashedNonce)
+        .build()
+    val request = GetCredentialRequest.Builder()
+        .addCredentialOption(googleIdOption)
+        .build()
+
+    scope.launch {
+        isLoading.value = true
+        try {
+            val result = CredentialManager.create(context).getCredential(context, request)
+            val credential = result.credential
+            if (credential is CustomCredential && credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
+                val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(credential.data)
+                supabase.auth.signInWith(IDToken) {
+                    idToken = googleIdTokenCredential.idToken
+                    provider = Google
+                    nonce = rawNonce
+                }
+                // No need to navigate manually; MainActivity observes the session change
+            } else {
+                message.value = AuthMessage(context.getString(R.string.auth_google_sign_in_error))
+            }
+        } catch (e: GetCredentialException) {
+            // By far the most common case here is the user backing out of the account picker --
+            // also covers no Google account on the device / Play Services unavailable, none of
+            // which are AuthRestExceptions resolveAuthErrorMessage knows how to classify.
+            message.value = AuthMessage(context.getString(R.string.auth_google_sign_in_cancelled_error))
         } catch (e: Exception) {
             message.value = AuthMessage(resolveAuthErrorMessage(context, e))
         } finally {
@@ -676,6 +754,26 @@ fun LoginScreen() {
                 enabled = !isLoading
             ) {
                 Text(if (isLoading) "Loading..." else stringResource(R.string.sign_in))
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            OutlinedButton(
+                onClick = { handleGoogleSignInClick(context, scope, isLoadingState, messageState) },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !isLoading
+            ) {
+                // Google's brand guidelines call for their actual multi-color "G" mark on a sign-in
+                // button, not a generic/tinted icon -- Material Icons Extended (already a dependency
+                // here) has no brand logos, hence the dedicated drawable instead.
+                Icon(
+                    painter = painterResource(R.drawable.ic_google_logo),
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                    tint = Color.Unspecified
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(stringResource(R.string.continue_with_google))
             }
 
             // Sign Up Button

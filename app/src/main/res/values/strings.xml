@@ -73,6 +73,9 @@
     <string name="unit_bottle">bottle</string>
     <string name="create_account">Create Account</string>
     <string name="sign_in">Sign In</string>
+    <string name="continue_with_google">Continue with Google</string>
+    <string name="auth_google_sign_in_cancelled_error">Google sign-in was cancelled.</string>
+    <string name="auth_google_sign_in_error">Google sign-in failed. Please try again.</string>
     <string name="lang_button_label">English</string>
     <!-- Household onboarding -->
     <string name="household_onboarding_title">Set up your household</string>

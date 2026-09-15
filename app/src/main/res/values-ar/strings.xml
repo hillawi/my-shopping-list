@@ -73,6 +73,9 @@
     <string name="unit_bottle">زجاجة</string>
     <string name="create_account">إنشاء حساب</string>
     <string name="sign_in">تسجيل دخول</string>
+    <string name="continue_with_google">المتابعة باستخدام جوجل</string>
+    <string name="auth_google_sign_in_cancelled_error">تم إلغاء تسجيل الدخول عبر جوجل.</string>
+    <string name="auth_google_sign_in_error">فشل تسجيل الدخول عبر جوجل. حاول مرة أخرى.</string>
     <string name="lang_button_label">العربية</string>
     <!-- Household onboarding -->
     <string name="household_onboarding_title">إعداد المنزل</string>
