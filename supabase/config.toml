@@ -245,11 +245,11 @@ otp_expiry = 3600
 # sender_name = "Admin"
 
 [auth.email.template.confirmation]
-subject = "Confirm your MyShoppingList signup"
+subject = "MyShoppingList - Confirm your signup"
 content_path = "./supabase/templates/confirmation.html"
 
 [auth.email.template.recovery]
-subject = "Reset your MyShoppingList password"
+subject = "MyShoppingList - Reset your password"
 content_path = "./supabase/templates/recovery.html"
 
 # Uncomment to customize email template
