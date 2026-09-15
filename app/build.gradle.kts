@@ -37,6 +37,12 @@ android {
         buildConfigField("String", "BUILD_TIMESTAMP", "\"$buildTimestamp\"")
         buildConfigField("String", "SUPABASE_URL", "\"https://comxreruiurkxjawwkie.supabase.co\"")
         buildConfigField("String", "SUPABASE_ANON_KEY", "\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNvbXhyZXJ1aXVya3hqYXd3a2llIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgwMzAwMzksImV4cCI6MjA4MzYwNjAzOX0.Pa-viBl4bIDoPUPPgcY__t375smzjCg8FY1t2lsldRg\"")
+        // The OAuth 2.0 "Web application" client ID from Google Cloud Console -- Credential
+        // Manager's GetGoogleIdOption calls this the serverClientId. Not a secret (same
+        // reasoning as the Supabase anon key above): it identifies the app to Google, it doesn't
+        // authenticate anything by itself. One ID for both build types since debug and release
+        // both talk to the same production Supabase project's auth.
+        buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"TODO-set-after-google-cloud-console-setup.apps.googleusercontent.com\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -106,6 +112,9 @@ dependencies {
     implementation(libs.gotrue.kt)
     implementation(libs.postgrest.kt)
     implementation(libs.androidx.core.splashscreen)
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services.auth)
+    implementation(libs.googleid)
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.postgrest.kt)

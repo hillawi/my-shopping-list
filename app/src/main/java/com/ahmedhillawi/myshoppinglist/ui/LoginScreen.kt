@@ -4,6 +4,12 @@ import android.app.LocaleManager
 import android.content.Context
 import android.os.LocaleList
 import android.util.Log
+import androidx.credentials.CredentialManager
+import androidx.credentials.CustomCredential
+import androidx.credentials.GetCredentialRequest
+import androidx.credentials.exceptions.GetCredentialException
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -25,6 +31,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -56,6 +63,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ahmedhillawi.myshoppinglist.BuildConfig
 import com.ahmedhillawi.myshoppinglist.R
 import com.ahmedhillawi.myshoppinglist.isPasswordRecoveryInProgress
 import com.ahmedhillawi.myshoppinglist.supabase
@@ -64,7 +72,9 @@ import io.github.jan.supabase.auth.OtpVerifyResult
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.exception.AuthErrorCode
 import io.github.jan.supabase.auth.exception.AuthRestException
+import io.github.jan.supabase.auth.providers.Google
 import io.github.jan.supabase.auth.providers.builtin.Email
+import io.github.jan.supabase.auth.providers.builtin.IDToken
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -142,6 +152,52 @@ private fun handleSignInClick(
                 this.password = password
             }
             // No need to navigate manually; MainActivity observes the session change
+        } catch (e: Exception) {
+            message.value = AuthMessage(resolveAuthErrorMessage(context, e))
+        } finally {
+            isLoading.value = false
+        }
+    }
+}
+
+// Native "Sign in with Google" via Credential Manager -- shows the system account picker
+// in-process (no browser, no deep link) and hands the resulting Google ID token straight to
+// Supabase's IDToken provider. GoTrue creates the user automatically on a first-time Google
+// sign-in, same as it already does for a first-time email sign-up.
+private fun handleGoogleSignInClick(
+    context: Context,
+    scope: CoroutineScope,
+    isLoading: MutableState<Boolean>,
+    message: MutableState<AuthMessage>
+) {
+    val googleIdOption = GetGoogleIdOption.Builder()
+        .setFilterByAuthorizedAccounts(false)
+        .setServerClientId(BuildConfig.GOOGLE_WEB_CLIENT_ID)
+        .build()
+    val request = GetCredentialRequest.Builder()
+        .addCredentialOption(googleIdOption)
+        .build()
+
+    scope.launch {
+        isLoading.value = true
+        try {
+            val result = CredentialManager.create(context).getCredential(context, request)
+            val credential = result.credential
+            if (credential is CustomCredential && credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
+                val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(credential.data)
+                supabase.auth.signInWith(IDToken) {
+                    idToken = googleIdTokenCredential.idToken
+                    provider = Google
+                }
+                // No need to navigate manually; MainActivity observes the session change
+            } else {
+                message.value = AuthMessage(context.getString(R.string.auth_google_sign_in_error))
+            }
+        } catch (e: GetCredentialException) {
+            // By far the most common case here is the user backing out of the account picker --
+            // also covers no Google account on the device / Play Services unavailable, none of
+            // which are AuthRestExceptions resolveAuthErrorMessage knows how to classify.
+            message.value = AuthMessage(context.getString(R.string.auth_google_sign_in_cancelled_error))
         } catch (e: Exception) {
             message.value = AuthMessage(resolveAuthErrorMessage(context, e))
         } finally {
@@ -676,6 +732,16 @@ fun LoginScreen() {
                 enabled = !isLoading
             ) {
                 Text(if (isLoading) "Loading..." else stringResource(R.string.sign_in))
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            OutlinedButton(
+                onClick = { handleGoogleSignInClick(context, scope, isLoadingState, messageState) },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !isLoading
+            ) {
+                Text(stringResource(R.string.continue_with_google))
             }
 
             // Sign Up Button
