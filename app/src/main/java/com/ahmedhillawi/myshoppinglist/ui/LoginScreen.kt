@@ -73,6 +73,15 @@ import kotlinx.coroutines.launch
 // entry UI renders.
 private const val OTP_LENGTH = 8
 
+// Bundles the status text shown below the form with whether it's actually an error -- most of
+// what this screen reports is (a failed sign-in, a missing field), but "a new code was sent" is
+// a confirmation, not a failure, and rendering it in the same error color was misleading.
+private data class AuthMessage(val text: String, val isError: Boolean = true) {
+    companion object {
+        val Empty = AuthMessage("")
+    }
+}
+
 // Maps a caught auth exception to a user-facing message, so a raw technical error (a Postgrest/
 // GoTrue error code or a network exception's message) never reaches the screen. The original
 // exception is still logged for debugging. New known cases can be added to the `when` below;
@@ -107,7 +116,7 @@ private fun handleSignInClick(
     context: Context,
     scope: CoroutineScope,
     isLoading: MutableState<Boolean>,
-    message: MutableState<String>,
+    message: MutableState<AuthMessage>,
     showValidationError: MutableState<Boolean>
 ) {
     // Stray leading/trailing whitespace (e.g. pasted from another app) makes GoTrue reject an
@@ -121,7 +130,7 @@ private fun handleSignInClick(
     // raw message to the user.
     if (email.isBlank() || password.isBlank()) {
         showValidationError.value = true
-        message.value = context.getString(R.string.auth_missing_fields_error)
+        message.value = AuthMessage(context.getString(R.string.auth_missing_fields_error))
         return
     }
     showValidationError.value = false
@@ -134,7 +143,7 @@ private fun handleSignInClick(
             }
             // No need to navigate manually; MainActivity observes the session change
         } catch (e: Exception) {
-            message.value = resolveAuthErrorMessage(context, e)
+            message.value = AuthMessage(resolveAuthErrorMessage(context, e))
         } finally {
             isLoading.value = false
         }
@@ -146,14 +155,14 @@ private fun handleSignUpClick(
     password: String,
     context: Context,
     scope: CoroutineScope,
-    message: MutableState<String>,
+    message: MutableState<AuthMessage>,
     showValidationError: MutableState<Boolean>,
     pendingOtpEmail: MutableState<String?>
 ) {
     @Suppress("NAME_SHADOWING") val email = email.trim()
     if (email.isBlank() || password.isBlank()) {
         showValidationError.value = true
-        message.value = context.getString(R.string.auth_missing_fields_error)
+        message.value = AuthMessage(context.getString(R.string.auth_missing_fields_error))
         return
     }
     showValidationError.value = false
@@ -166,10 +175,10 @@ private fun handleSignUpClick(
             // signUpWith never throws and never establishes a session when email confirmation is
             // required (confirmed against the SDK's behavior) -- it just returns, so the OTP step
             // always follows a successful call here rather than branching on session state.
-            message.value = ""
+            message.value = AuthMessage.Empty
             pendingOtpEmail.value = email
         } catch (e: Exception) {
-            message.value = resolveAuthErrorMessage(context, e)
+            message.value = AuthMessage(resolveAuthErrorMessage(context, e))
         }
     }
 }
@@ -181,13 +190,13 @@ private fun handleVerifyOtpClick(
     context: Context,
     scope: CoroutineScope,
     isLoading: MutableState<Boolean>,
-    message: MutableState<String>,
+    message: MutableState<AuthMessage>,
     pendingOtpEmail: MutableState<String?>,
     onAuthenticated: () -> Unit,
     onInvalidCode: () -> Unit
 ) {
     if (code.isBlank()) {
-        message.value = context.getString(R.string.auth_otp_missing_code_error)
+        message.value = AuthMessage(context.getString(R.string.auth_otp_missing_code_error))
         return
     }
     scope.launch {
@@ -199,11 +208,11 @@ private fun handleVerifyOtpClick(
                     // Not expected for either SIGNUP or RECOVERY (both should always hand back a
                     // session), but handled defensively rather than assumed away.
                     pendingOtpEmail.value = null
-                    message.value = context.getString(R.string.auth_invalid_credentials_error)
+                    message.value = AuthMessage(context.getString(R.string.auth_invalid_credentials_error))
                 }
             }
         } catch (e: Exception) {
-            message.value = resolveAuthErrorMessage(context, e)
+            message.value = AuthMessage(resolveAuthErrorMessage(context, e))
             onInvalidCode()
         } finally {
             isLoading.value = false
@@ -216,7 +225,7 @@ private fun handleResendOtpClick(
     purpose: OtpType.Email,
     context: Context,
     scope: CoroutineScope,
-    message: MutableState<String>
+    message: MutableState<AuthMessage>
 ) {
     scope.launch {
         try {
@@ -228,9 +237,9 @@ private fun handleResendOtpClick(
             } else {
                 supabase.auth.resendEmail(purpose, email)
             }
-            message.value = context.getString(R.string.resend_code_sent)
+            message.value = AuthMessage(context.getString(R.string.resend_code_sent), isError = false)
         } catch (e: Exception) {
-            message.value = resolveAuthErrorMessage(context, e)
+            message.value = AuthMessage(resolveAuthErrorMessage(context, e))
         }
     }
 }
@@ -239,19 +248,19 @@ private fun handleForgotPasswordClick(
     email: String,
     context: Context,
     scope: CoroutineScope,
-    message: MutableState<String>,
+    message: MutableState<AuthMessage>,
     pendingOtpEmail: MutableState<String?>,
     otpPurpose: MutableState<OtpType.Email>
 ) {
     @Suppress("NAME_SHADOWING") val email = email.trim()
     if (email.isBlank()) {
-        message.value = context.getString(R.string.auth_forgot_password_missing_email_error)
+        message.value = AuthMessage(context.getString(R.string.auth_forgot_password_missing_email_error))
         return
     }
     scope.launch {
         try {
             supabase.auth.resetPasswordForEmail(email)
-            message.value = ""
+            message.value = AuthMessage.Empty
             otpPurpose.value = OtpType.Email.RECOVERY
             // Set now, not just after the code is verified -- belt-and-suspenders against
             // MainActivity ever seeing a session appear mid-flow before the guard further down
@@ -259,7 +268,7 @@ private fun handleForgotPasswordClick(
             isPasswordRecoveryInProgress.value = true
             pendingOtpEmail.value = email
         } catch (e: Exception) {
-            message.value = resolveAuthErrorMessage(context, e)
+            message.value = AuthMessage(resolveAuthErrorMessage(context, e))
         }
     }
 }
@@ -270,15 +279,15 @@ private fun handleSetNewPasswordClick(
     context: Context,
     scope: CoroutineScope,
     isLoading: MutableState<Boolean>,
-    message: MutableState<String>,
+    message: MutableState<AuthMessage>,
     onSuccess: () -> Unit
 ) {
     if (newPassword.isBlank() || confirmPassword.isBlank()) {
-        message.value = context.getString(R.string.auth_missing_fields_error)
+        message.value = AuthMessage(context.getString(R.string.auth_missing_fields_error))
         return
     }
     if (newPassword != confirmPassword) {
-        message.value = context.getString(R.string.auth_password_mismatch_error)
+        message.value = AuthMessage(context.getString(R.string.auth_password_mismatch_error))
         return
     }
     scope.launch {
@@ -287,7 +296,7 @@ private fun handleSetNewPasswordClick(
             supabase.auth.updateUser { password = newPassword }
             onSuccess()
         } catch (e: Exception) {
-            message.value = resolveAuthErrorMessage(context, e)
+            message.value = AuthMessage(resolveAuthErrorMessage(context, e))
         } finally {
             isLoading.value = false
         }
@@ -423,8 +432,8 @@ private fun OtpEntryForm(
     scope: CoroutineScope,
     isLoadingState: MutableState<Boolean>,
     isLoading: Boolean,
-    messageState: MutableState<String>,
-    message: String,
+    messageState: MutableState<AuthMessage>,
+    message: AuthMessage,
     pendingOtpEmailState: MutableState<String?>,
     onAuthenticated: () -> Unit
 ) {
@@ -488,8 +497,8 @@ private fun OtpEntryForm(
         Spacer(modifier = Modifier.height(16.dp))
     }
 
-    if (message.isNotEmpty()) {
-        Text(message, color = MaterialTheme.colorScheme.error)
+    if (message.text.isNotEmpty()) {
+        Text(message.text, color = if (message.isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary)
         Spacer(modifier = Modifier.height(16.dp))
     }
 
@@ -503,7 +512,7 @@ private fun OtpEntryForm(
     TextButton(
         onClick = {
             pendingOtpEmailState.value = null
-            messageState.value = ""
+            messageState.value = AuthMessage.Empty
             // Abandoning a recovery flow mid-code -- release the guard so a normal sign-in works
             // immediately afterward instead of getting stuck showing LoginScreen forever.
             if (purpose == OtpType.Email.RECOVERY) isPasswordRecoveryInProgress.value = false
@@ -522,8 +531,8 @@ private fun SetNewPasswordForm(
     scope: CoroutineScope,
     isLoadingState: MutableState<Boolean>,
     isLoading: Boolean,
-    messageState: MutableState<String>,
-    message: String,
+    messageState: MutableState<AuthMessage>,
+    message: AuthMessage,
     onSuccess: () -> Unit
 ) {
     var newPassword by remember { mutableStateOf("") }
@@ -556,8 +565,8 @@ private fun SetNewPasswordForm(
 
     Spacer(modifier = Modifier.height(24.dp))
 
-    if (message.isNotEmpty()) {
-        Text(message, color = MaterialTheme.colorScheme.error)
+    if (message.text.isNotEmpty()) {
+        Text(message.text, color = if (message.isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary)
         Spacer(modifier = Modifier.height(16.dp))
     }
 
@@ -582,7 +591,7 @@ fun LoginScreen() {
     var password by remember { mutableStateOf("") }
     val isLoadingState = remember { mutableStateOf(false) }
     val isLoading by isLoadingState
-    val messageState = remember { mutableStateOf("") }
+    val messageState = remember { mutableStateOf(AuthMessage.Empty) }
     val message by messageState
     val showValidationErrorState = remember { mutableStateOf(false) }
     val showValidationError by showValidationErrorState
@@ -605,7 +614,7 @@ fun LoginScreen() {
             if (showSetNewPassword) {
                 SetNewPasswordForm(context, scope, isLoadingState, isLoading, messageState, message) {
                     showSetNewPassword = false
-                    messageState.value = ""
+                    messageState.value = AuthMessage.Empty
                     // Only now is it safe for MainActivity to act on the session verifyEmailOtp
                     // already established -- see SupabaseClient.kt's doc comment on this flag.
                     isPasswordRecoveryInProgress.value = false
@@ -654,8 +663,8 @@ fun LoginScreen() {
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            if (message.isNotEmpty()) {
-                Text(message, color = MaterialTheme.colorScheme.error)
+            if (message.text.isNotEmpty()) {
+                Text(message.text, color = if (message.isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary)
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
