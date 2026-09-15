@@ -4,6 +4,10 @@ import android.app.LocaleManager
 import android.content.Context
 import android.os.LocaleList
 import android.util.Log
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.colorResource
 import androidx.credentials.CredentialManager
 import androidx.credentials.CustomCredential
 import androidx.credentials.GetCredentialRequest
@@ -713,6 +717,23 @@ fun LoginScreen() {
                 return@Column
             }
 
+            // painterResource only supports plain VectorDrawables/rasters, not the <adaptive-icon>
+            // XML R.mipmap.ic_launcher resolves to on API 26+ -- so this recreates the adaptive
+            // icon's look (background color + foreground vector) by hand instead of loading it.
+            Box(
+                modifier = Modifier
+                    .size(72.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(colorResource(R.color.ic_launcher_background)),
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    painter = painterResource(R.drawable.ic_launcher_foreground),
+                    contentDescription = null,
+                    modifier = Modifier.size(72.dp)
+                )
+            }
+            Spacer(modifier = Modifier.height(16.dp))
             Text(stringResource(R.string.app_name), style = MaterialTheme.typography.headlineMedium)
             Spacer(modifier = Modifier.height(32.dp))
 
