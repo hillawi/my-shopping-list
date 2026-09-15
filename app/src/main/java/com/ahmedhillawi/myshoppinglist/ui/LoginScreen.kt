@@ -48,6 +48,7 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -324,6 +325,10 @@ private fun OtpCodeBoxes(
     focusRequesters: List<FocusRequester>,
     enabled: Boolean
 ) {
+    val clipboard = LocalClipboard.current
+    val context = LocalContext.current
+    val clipboardScope = rememberCoroutineScope()
+
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         digits.forEachIndexed { index, digit ->
             // Material3's OutlinedTextField bakes in ~16dp of horizontal padding on each side
@@ -345,12 +350,27 @@ private fun OtpCodeBoxes(
                             focusRequesters[index + 1].requestFocus()
                         }
                     } else {
-                        // Pasted/autofilled multiple digits starting at this box.
-                        typed.forEachIndexed { offset, c ->
-                            val target = index + offset
-                            if (target <= digits.lastIndex) onDigitsChange(target, c.toString())
+                        // Pasted/autofilled multiple digits starting at this box. Some keyboards'
+                        // paste implementations report this field's post-paste value to Compose
+                        // with its first character silently missing (a platform IME quirk, not
+                        // specific to this field) -- reading the clipboard directly sidesteps
+                        // that instead of trusting `newValue`, which is only used as a fallback
+                        // if the clipboard is empty or shorter than what was already reported.
+                        clipboardScope.launch {
+                            val clipboardDigits = clipboard.getClipEntry()
+                                ?.clipData?.getItemAt(0)?.coerceToText(context)?.toString()
+                                ?.filter { it.isDigit() }
+                            val fullCode = if (!clipboardDigits.isNullOrEmpty() && clipboardDigits.length >= typed.length) {
+                                clipboardDigits
+                            } else {
+                                typed
+                            }
+                            fullCode.forEachIndexed { offset, c ->
+                                val target = index + offset
+                                if (target <= digits.lastIndex) onDigitsChange(target, c.toString())
+                            }
+                            focusRequesters[minOf(index + fullCode.length, digits.lastIndex)].requestFocus()
                         }
-                        focusRequesters[minOf(index + typed.length, digits.lastIndex)].requestFocus()
                     }
                 },
                 enabled = enabled,
