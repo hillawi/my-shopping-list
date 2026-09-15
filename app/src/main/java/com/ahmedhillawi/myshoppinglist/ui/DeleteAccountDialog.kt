@@ -1,11 +1,18 @@
 package com.ahmedhillawi.myshoppinglist.ui
 
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import com.ahmedhillawi.myshoppinglist.R
 
 // Extracted out of ShoppingListScreen to keep that composable's own cognitive complexity down.
@@ -27,12 +34,19 @@ fun DeleteAccountDialog(
         onDismissRequest = { if (!isDeletingAccount) onDismiss() },
         title = { Text(stringResource(R.string.delete_account_title)) },
         text = {
-            val messageRes = if (myRole == "owner") {
-                R.string.delete_account_confirm_owner
-            } else {
-                R.string.delete_account_confirm_member
+            Column {
+                val messageRes = if (myRole == "owner") {
+                    R.string.delete_account_confirm_owner
+                } else {
+                    R.string.delete_account_confirm_member
+                }
+                Text(stringResource(messageRes, householdName))
+
+                if (isDeletingAccount) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    CircularProgressIndicator(modifier = Modifier.size(32.dp))
+                }
             }
-            Text(stringResource(messageRes, householdName))
         },
         confirmButton = {
             TextButton(enabled = !isDeletingAccount, onClick = onConfirm) {

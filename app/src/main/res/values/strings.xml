@@ -97,4 +97,5 @@
     <string name="delete_account_confirm_owner">This will permanently delete your household \'%1$s\' and all its shopping items for every member. This cannot be undone.</string>
     <string name="delete_account_confirm_member">You\'ll be removed from \'%1$s\'. Other members keep the household and its list.</string>
     <string name="delete_account_error_toast">Failed to delete account. Please try again.</string>
+    <string name="delete_account_success_toast">Account deleted.</string>
 </resources>
