@@ -1,5 +1,6 @@
 package com.ahmedhillawi.myshoppinglist.ui
 
+import android.util.Log
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
@@ -22,6 +23,7 @@ import com.ahmedhillawi.myshoppinglist.supabase
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.rpc
+import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -44,12 +46,21 @@ fun AccountDetailsDialog(
 
     LaunchedEffect(household.id) {
         val householdId = household.id ?: return@LaunchedEffect
-        memberCount = supabase.postgrest.rpc(
-            "household_member_count", HouseholdIdParam(householdId)
-        ).decodeAs<Int>()
-        memberLimit = supabase.postgrest.rpc(
-            "household_member_limit", HouseholdIdParam(householdId)
-        ).decodeAs<Int>()
+        // Purely informational -- if this fails (network hiccup, backend drift), the dialog
+        // still works with the member-count line just omitted (see the null check below),
+        // rather than crashing the whole app over a non-essential display value.
+        try {
+            memberCount = supabase.postgrest.rpc(
+                "household_member_count", HouseholdIdParam(householdId)
+            ).decodeAs<Int>()
+            memberLimit = supabase.postgrest.rpc(
+                "household_member_limit", HouseholdIdParam(householdId)
+            ).decodeAs<Int>()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.w("AccountDetailsDialog", "Failed to fetch member count/limit", e)
+        }
     }
 
     AlertDialog(
