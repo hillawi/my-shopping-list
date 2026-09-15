@@ -110,6 +110,11 @@ private fun handleSignInClick(
     message: MutableState<String>,
     showValidationError: MutableState<Boolean>
 ) {
+    // Stray leading/trailing whitespace (e.g. pasted from another app) makes GoTrue reject an
+    // otherwise-valid address outright rather than just ignoring it -- trim once here so every
+    // downstream use (validation, the auth call itself, pendingOtpEmail) sees the same clean
+    // value instead of scattering .trim() calls across each call site.
+    @Suppress("NAME_SHADOWING") val email = email.trim()
     // Supabase's own validation only kicks in once a request is sent -- with both fields blank
     // it reads as an anonymous sign-in attempt and comes back as an opaque
     // "anonymous_provider_disabled" error, so this is checked upfront instead of surfacing that
@@ -145,6 +150,7 @@ private fun handleSignUpClick(
     showValidationError: MutableState<Boolean>,
     pendingOtpEmail: MutableState<String?>
 ) {
+    @Suppress("NAME_SHADOWING") val email = email.trim()
     if (email.isBlank() || password.isBlank()) {
         showValidationError.value = true
         message.value = context.getString(R.string.auth_missing_fields_error)
@@ -237,6 +243,7 @@ private fun handleForgotPasswordClick(
     pendingOtpEmail: MutableState<String?>,
     otpPurpose: MutableState<OtpType.Email>
 ) {
+    @Suppress("NAME_SHADOWING") val email = email.trim()
     if (email.isBlank()) {
         message.value = context.getString(R.string.auth_forgot_password_missing_email_error)
         return
