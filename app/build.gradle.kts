@@ -42,7 +42,7 @@ android {
         // reasoning as the Supabase anon key above): it identifies the app to Google, it doesn't
         // authenticate anything by itself. One ID for both build types since debug and release
         // both talk to the same production Supabase project's auth.
-        buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"TODO-set-after-google-cloud-console-setup.apps.googleusercontent.com\"")
+        buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"168994394505-91kc001ul4rqltovea0j4hmcpohp8v7s.apps.googleusercontent.com\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
