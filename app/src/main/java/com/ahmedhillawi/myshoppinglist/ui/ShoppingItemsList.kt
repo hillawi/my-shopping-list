@@ -2,6 +2,7 @@ package com.ahmedhillawi.myshoppinglist.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -17,6 +18,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -34,6 +36,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.ahmedhillawi.myshoppinglist.R
 import com.ahmedhillawi.myshoppinglist.domain.ShoppingCategory
@@ -68,6 +71,12 @@ fun ShoppingItemsList(
             }
         }
 
+        // A brand new household (or one that's been fully cleared) would otherwise render as
+        // blank space here -- nothing else in this LazyColumn produces any content.
+        if (activeItems.isEmpty() && purchasedItems.isEmpty()) {
+            item { EmptyListState() }
+        }
+
         if (purchasedItems.isNotEmpty()) {
             item {
                 Spacer(modifier = Modifier.height(24.dp))
@@ -76,7 +85,7 @@ fun ShoppingItemsList(
                     Text(
                         stringResource(R.string.history_header),
                         style = MaterialTheme.typography.labelMedium,
-                        color = Color.Gray,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(horizontal = 8.dp)
                     )
                     HorizontalDivider(modifier = Modifier.weight(1f))
@@ -103,7 +112,7 @@ fun ShoppingItemsList(
                     Text(
                         stringResource(R.string.no_purchased_items_match, purchasedSearchQuery),
                         style = MaterialTheme.typography.bodyMedium,
-                        color = Color.Gray,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(vertical = 16.dp)
                     )
                 }
@@ -152,7 +161,7 @@ private fun SwipeToDeleteRow(item: ShoppingItem, actions: ShoppingItemActions) {
                 modifier = Modifier.fillMaxSize().background(color).padding(horizontal = 20.dp),
                 contentAlignment = Alignment.CenterEnd
             ) {
-                Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.White)
+                Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.delete_button), tint = Color.White)
             }
         }
     ) {
@@ -166,6 +175,38 @@ private fun SwipeToDeleteRow(item: ShoppingItem, actions: ShoppingItemActions) {
                 onDecrementQuantity = { actions.onDecrementQuantity(item) }
             )
         }
+    }
+}
+
+// Extracted out of ShoppingItemsList to keep that composable's own cognitive complexity down.
+@Composable
+private fun EmptyListState() {
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(top = 48.dp, start = 32.dp, end = 32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.ShoppingCart,
+            contentDescription = null,
+            modifier = Modifier.size(64.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = stringResource(R.string.empty_list_message),
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth()
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = stringResource(R.string.empty_list_hint),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth()
+        )
     }
 }
 
