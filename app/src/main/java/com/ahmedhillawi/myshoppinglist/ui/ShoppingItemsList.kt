@@ -50,6 +50,12 @@ import com.ahmedhillawi.myshoppinglist.domain.ShoppingItem
 import kotlin.math.abs
 import kotlinx.coroutines.launch
 
+// Fraction of a row's width a swipe (or fast flick, see SwipeToDeleteRow) must cover before it
+// counts as a delete gesture. Raised from 0.75 once, then brought back down here -- 0.9 needed too
+// deliberate a swipe once the fast-flick fix (below) made the threshold apply consistently
+// regardless of speed.
+private const val SwipeDismissThresholdFraction = 0.75f
+
 // Extracted out of ShoppingListScreen to keep that composable's own cognitive complexity down.
 // Also de-duplicates the swipe-to-delete row: the active-items and purchased-items sections
 // previously repeated the exact same SwipeToDismissBox + ShoppingListItem wiring verbatim.
@@ -153,23 +159,23 @@ private fun SwipeToDeleteRow(item: ShoppingItem, actions: ShoppingItemActions) {
     // self-referential) closure below always sees the real state once it's actually invoked.
     var dismissStateRef: SwipeToDismissBoxState? = null
 
-    // Require a deliberate, near-full-width swipe so an errant drag while tapping the
-    // checkbox/star doesn't pop the delete dialog. positionalThreshold alone isn't enough for a
-    // fast flick, though: Compose's built-in fling behavior hardcodes a 125dp/s velocity
-    // threshold with no public way to raise it (AnchoredDraggableDefaults.flingBehavior always
-    // completes the dismiss once a flick clears that speed, no matter how little distance it
-    // actually covered) -- confirmValueChange re-checks the real dragged distance against the
-    // measured row width, independent of velocity, so a quick flick needs the same 90% travel a
-    // slow drag does. This constructor overload is deprecated in this Material3 version with no
-    // non-deprecated replacement that supports a custom veto like this.
+    // Require a deliberate swipe so an errant drag while tapping the checkbox/star doesn't pop
+    // the delete dialog. positionalThreshold alone isn't enough for a fast flick, though:
+    // Compose's built-in fling behavior hardcodes a 125dp/s velocity threshold with no public way
+    // to raise it (AnchoredDraggableDefaults.flingBehavior always completes the dismiss once a
+    // flick clears that speed, no matter how little distance it actually covered) --
+    // confirmValueChange re-checks the real dragged distance against the measured row width,
+    // independent of velocity, so a quick flick needs the same travel a slow drag does. This
+    // constructor overload is deprecated in this Material3 version with no non-deprecated
+    // replacement that supports a custom veto like this.
     @Suppress("DEPRECATION")
     val dismissState = rememberSwipeToDismissBoxState(
         confirmValueChange = { targetValue ->
             val state = dismissStateRef
             targetValue == SwipeToDismissBoxValue.Settled || state == null || rowWidthPx <= 0f ||
-                abs(state.requireOffset()) >= rowWidthPx * 0.9f
+                abs(state.requireOffset()) >= rowWidthPx * SwipeDismissThresholdFraction
         },
-        positionalThreshold = { totalDistance -> totalDistance * 0.9f }
+        positionalThreshold = { totalDistance -> totalDistance * SwipeDismissThresholdFraction }
     )
     dismissStateRef = dismissState
 
