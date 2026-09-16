@@ -2,6 +2,7 @@ package com.ahmedhillawi.myshoppinglist.ui
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -26,6 +27,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ahmedhillawi.myshoppinglist.R
@@ -66,7 +68,11 @@ fun EditItemDialog(
                     onValueChange = { onDraftChange(draft.copy(quantity = it)) },
                     modifier = Modifier.width(120.dp),
                     label = { Text(stringResource(R.string.qty_label)) },
-                    singleLine = true
+                    singleLine = true,
+                    // Decimal, not Number -- quantities are commonly fractional (e.g. "1.5 kg"),
+                    // and this keyboard still has a way to switch to a full one for the free-text
+                    // quantities (e.g. "2-3") QuantityDisplay also supports.
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
                 )
 
                 Spacer(Modifier.height(8.dp))

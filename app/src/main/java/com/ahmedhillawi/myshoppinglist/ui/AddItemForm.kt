@@ -28,6 +28,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.ahmedhillawi.myshoppinglist.R
 import com.ahmedhillawi.myshoppinglist.domain.MeasurementUnit
@@ -70,7 +71,10 @@ fun AddItemForm(
                 modifier = Modifier.width(100.dp), // Wider for "1.5 kg"
                 label = { Text(stringResource(R.string.qty_label)) },
                 singleLine = true,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                // Decimal, not Number -- quantities are commonly fractional (e.g. "1.5 kg", see
+                // the width comment above), and this keyboard still has a way to switch to a full
+                // one for the free-text quantities (e.g. "2-3") QuantityDisplay also supports.
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(onDone = {
                     if (draft.name.isNotBlank()) onSubmitViaKeyboard()
                 })
