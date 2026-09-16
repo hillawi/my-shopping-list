@@ -1,7 +1,5 @@
 package com.ahmedhillawi.myshoppinglist.ui
 
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -12,17 +10,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
@@ -56,6 +48,7 @@ fun AddItemForm(
     onSubmitViaButton: () -> Unit
 ) {
     var categoryExpanded by remember { mutableStateOf(false) }
+    var unitExpanded by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.fillMaxWidth()) {
         // ROW A: Name and Qty Inputs
@@ -84,25 +77,36 @@ fun AddItemForm(
             )
         }
 
-        // ROW B: Unit Chips (Smart Suggestions) -- sits right below the inputs for easy tapping.
-        LazyRow(
-            modifier = Modifier.padding(vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            items(MeasurementUnit.entries.toTypedArray()) { unitEnum ->
-                FilterChip(
-                    selected = draft.unit == unitEnum,
-                    onClick = { onDraftChange(draft.copy(unit = unitEnum)) },
-                    label = { Text(stringResource(unitEnum.resId)) },
-                    leadingIcon = if (draft.unit == unitEnum) {
-                        { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
-                    } else null
-                )
+        // ROW B: Unit, Category & Button -- unit and category share a row (same OutlinedCard +
+        // DropdownMenu presentation for both) rather than unit getting a row of its own.
+        Row(Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+            Box(modifier = Modifier.width(110.dp)) {
+                OutlinedCard(
+                    onClick = { unitExpanded = true },
+                    modifier = Modifier.fillMaxWidth().height(56.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(stringResource(draft.unit.resId))
+                    }
+                }
+                DropdownMenu(expanded = unitExpanded, onDismissRequest = { unitExpanded = false }) {
+                    MeasurementUnit.entries.forEach { unitEnum ->
+                        DropdownMenuItem(
+                            text = { Text(stringResource(unitEnum.resId)) },
+                            onClick = {
+                                onDraftChange(draft.copy(unit = unitEnum))
+                                unitExpanded = false
+                            }
+                        )
+                    }
+                }
             }
-        }
 
-        // ROW C: Category & Button
-        Row(Modifier.fillMaxWidth()) {
+            Spacer(modifier = Modifier.width(8.dp))
+
             Box(modifier = Modifier.weight(1f)) {
                 OutlinedCard(
                     onClick = { categoryExpanded = true },
@@ -144,19 +148,6 @@ fun AddItemForm(
             ) {
                 Text(stringResource(R.string.add_button))
             }
-        }
-    }
-}
-
-@Composable
-fun UnitSelector(selectedUnit: MeasurementUnit, onUnitSelected: (MeasurementUnit) -> Unit) {
-    Row(modifier = Modifier.horizontalScroll(rememberScrollState())) {
-        MeasurementUnit.entries.forEach { unit ->
-            FilterChip(
-                selected = selectedUnit == unit,
-                onClick = { onUnitSelected(unit) },
-                label = { Text(stringResource(unit.resId)) }
-            )
         }
     }
 }

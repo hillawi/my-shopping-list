@@ -62,7 +62,6 @@
     <string name="cat_snacks">وجبات خفيفة و حلويات</string>
     <string name="cat_beverages">مشروبات</string>
     <!-- Units -->
-    <string name="unit_label">الوحدة</string>
     <string name="unit_pcs">قطعة</string>
     <string name="unit_kg">كجم</string>
     <string name="unit_g">جم</string>
