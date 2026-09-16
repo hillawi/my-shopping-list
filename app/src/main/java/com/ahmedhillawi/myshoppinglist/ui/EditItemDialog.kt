@@ -14,7 +14,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -26,7 +25,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -73,77 +71,74 @@ fun EditItemDialog(
 
                 Spacer(Modifier.height(8.dp))
 
-                Box(modifier = Modifier.fillMaxWidth()) {
-                    OutlinedCard(
-                        onClick = { categoryExpanded = true },
-                        modifier = Modifier.fillMaxWidth().height(56.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                // Unit and category share a row (same OutlinedCard + DropdownMenu presentation
+                // for both) rather than unit getting a row of its own below.
+                Row(Modifier.fillMaxWidth()) {
+                    Box(modifier = Modifier.weight(1f)) {
+                        OutlinedCard(
+                            onClick = { categoryExpanded = true },
+                            modifier = Modifier.fillMaxWidth().height(56.dp)
                         ) {
-                            Icon(draft.category.icon, null, modifier = Modifier.size(20.dp))
-                            Spacer(Modifier.width(8.dp))
-                            Text(
-                                text = stringResource(draft.category.resId),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
+                            Row(
+                                modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(draft.category.icon, null, modifier = Modifier.size(20.dp))
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    text = stringResource(draft.category.resId),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
                         }
-                    }
-                    DropdownMenu(expanded = categoryExpanded, onDismissRequest = { categoryExpanded = false }) {
-                        ShoppingCategory.entries.forEach { cat ->
-                            DropdownMenuItem(
-                                text = {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(cat.icon, null, modifier = Modifier.size(18.dp))
-                                        Spacer(Modifier.width(12.dp))
-                                        Text(stringResource(cat.resId))
+                        DropdownMenu(expanded = categoryExpanded, onDismissRequest = { categoryExpanded = false }) {
+                            ShoppingCategory.entries.forEach { cat ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(cat.icon, null, modifier = Modifier.size(18.dp))
+                                            Spacer(Modifier.width(12.dp))
+                                            Text(stringResource(cat.resId))
+                                        }
+                                    },
+                                    onClick = {
+                                        onDraftChange(draft.copy(category = cat))
+                                        categoryExpanded = false
                                     }
-                                },
-                                onClick = {
-                                    onDraftChange(draft.copy(category = cat))
-                                    categoryExpanded = false
-                                }
-                            )
+                                )
+                            }
                         }
                     }
-                }
 
-                Spacer(Modifier.height(12.dp))
+                    Spacer(Modifier.width(8.dp))
 
-                Text(
-                    text = stringResource(R.string.unit_label),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = Color.Gray
-                )
-                Spacer(Modifier.height(4.dp))
-                // Same OutlinedCard + DropdownMenu presentation as the category picker above.
-                Box {
-                    OutlinedCard(
-                        onClick = { unitExpanded = true },
-                        modifier = Modifier.width(140.dp).height(56.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                    Box(modifier = Modifier.width(110.dp)) {
+                        OutlinedCard(
+                            onClick = { unitExpanded = true },
+                            modifier = Modifier.fillMaxWidth().height(56.dp)
                         ) {
-                            Text(
-                                text = stringResource(draft.unit.resId),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
+                            Row(
+                                modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = stringResource(draft.unit.resId),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
                         }
-                    }
-                    DropdownMenu(expanded = unitExpanded, onDismissRequest = { unitExpanded = false }) {
-                        MeasurementUnit.entries.forEach { unitEnum ->
-                            DropdownMenuItem(
-                                text = { Text(stringResource(unitEnum.resId)) },
-                                onClick = {
-                                    onDraftChange(draft.copy(unit = unitEnum))
-                                    unitExpanded = false
-                                }
-                            )
+                        DropdownMenu(expanded = unitExpanded, onDismissRequest = { unitExpanded = false }) {
+                            MeasurementUnit.entries.forEach { unitEnum ->
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(unitEnum.resId)) },
+                                    onClick = {
+                                        onDraftChange(draft.copy(unit = unitEnum))
+                                        unitExpanded = false
+                                    }
+                                )
+                            }
                         }
                     }
                 }

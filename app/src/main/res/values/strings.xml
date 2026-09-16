@@ -62,7 +62,6 @@
     <string name="cat_snacks">Snacks &amp; Sweets</string>
     <string name="cat_beverages">Beverages</string>
     <!-- Units -->
-    <string name="unit_label">Unit</string>
     <string name="unit_pcs">pcs</string>
     <string name="unit_kg">kg</string>
     <string name="unit_g">g</string>

@@ -77,35 +77,36 @@ fun AddItemForm(
             )
         }
 
-        // ROW B: Unit dropdown -- same OutlinedCard + DropdownMenu presentation as the category
-        // picker in ROW C below, rather than the filter-chip row this replaced.
-        Box(modifier = Modifier.padding(vertical = 8.dp)) {
-            OutlinedCard(
-                onClick = { unitExpanded = true },
-                modifier = Modifier.width(140.dp).height(56.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically
+        // ROW B: Unit, Category & Button -- unit and category share a row (same OutlinedCard +
+        // DropdownMenu presentation for both) rather than unit getting a row of its own.
+        Row(Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+            Box(modifier = Modifier.width(110.dp)) {
+                OutlinedCard(
+                    onClick = { unitExpanded = true },
+                    modifier = Modifier.fillMaxWidth().height(56.dp)
                 ) {
-                    Text(stringResource(draft.unit.resId))
+                    Row(
+                        modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(stringResource(draft.unit.resId))
+                    }
+                }
+                DropdownMenu(expanded = unitExpanded, onDismissRequest = { unitExpanded = false }) {
+                    MeasurementUnit.entries.forEach { unitEnum ->
+                        DropdownMenuItem(
+                            text = { Text(stringResource(unitEnum.resId)) },
+                            onClick = {
+                                onDraftChange(draft.copy(unit = unitEnum))
+                                unitExpanded = false
+                            }
+                        )
+                    }
                 }
             }
-            DropdownMenu(expanded = unitExpanded, onDismissRequest = { unitExpanded = false }) {
-                MeasurementUnit.entries.forEach { unitEnum ->
-                    DropdownMenuItem(
-                        text = { Text(stringResource(unitEnum.resId)) },
-                        onClick = {
-                            onDraftChange(draft.copy(unit = unitEnum))
-                            unitExpanded = false
-                        }
-                    )
-                }
-            }
-        }
 
-        // ROW C: Category & Button
-        Row(Modifier.fillMaxWidth()) {
+            Spacer(modifier = Modifier.width(8.dp))
+
             Box(modifier = Modifier.weight(1f)) {
                 OutlinedCard(
                     onClick = { categoryExpanded = true },
