@@ -30,7 +30,6 @@
     <string name="logout">Logout</string>
     <string name="account_menu_item">Account</string>
     <string name="account_details_title">Account details</string>
-    <string name="account_email_label">Email: %1$s</string>
     <string name="account_household_label">Household: %1$s</string>
     <string name="close_button">Close</string>
     <string name="item_name_label">Item Name</string>
@@ -47,6 +46,7 @@
     <string name="edit_title">Edit Item</string>
     <string name="save_button">Save</string>
     <string name="cancel_button">Cancel</string>
+    <string name="back_button">Back</string>
     <string name="copied_toast">List copied to clipboard!</string>
     <string name="copy_failed_toast">Failed to copy to clipboard</string>
     <string name="empty_list_message">Your list is currently empty</string>
@@ -91,7 +91,7 @@
     <string name="household_generic_error">Something went wrong. Please try again.</string>
     <string name="copy_invite_code">Copy invite code</string>
     <string name="invite_code_copied_toast">Invite code copied!</string>
-    <string name="account_plan_label">Plan: %1$s</string>
+    <string name="account_plan_label">Plan</string>
     <string name="account_member_count_label">Members: %1$d / %2$d</string>
     <string name="plan_free">Free</string>
     <string name="plan_paid">Paid</string>
@@ -101,4 +101,7 @@
     <string name="delete_account_confirm_member">You\'ll be removed from \'%1$s\'. Other members keep the household and its list.</string>
     <string name="delete_account_error_toast">Failed to delete account. Please try again.</string>
     <string name="delete_account_success_toast">Account deleted.</string>
+    <string name="remove_member_button">Remove</string>
+    <string name="remove_member_title">Remove member?</string>
+    <string name="remove_member_confirm">Remove %1$s from this household? They\'ll lose access to the shared list.</string>
 </resources>

@@ -30,7 +30,6 @@
     <string name="logout">تسجيل خروج</string>
     <string name="account_menu_item">الحساب</string>
     <string name="account_details_title">تفاصيل الحساب</string>
-    <string name="account_email_label">البريد الإلكتروني: %1$s</string>
     <string name="account_household_label">المنزل: %1$s</string>
     <string name="close_button">إغلاق</string>
     <string name="item_name_label">اسم المنتج</string>
@@ -47,6 +46,7 @@
     <string name="edit_title">تعديل المنتج</string>
     <string name="save_button">حفظ</string>
     <string name="cancel_button">إلغاء</string>
+    <string name="back_button">رجوع</string>
     <string name="copied_toast">تم نسخ القائمة!</string>
     <string name="copy_failed_toast">فشل النسخ إلى الحافظة</string>
     <string name="empty_list_message">قائمتك فارغة حاليًا</string>
@@ -91,7 +91,7 @@
     <string name="household_generic_error">حدث خطأ ما. حاول مرة أخرى.</string>
     <string name="copy_invite_code">نسخ رمز الدعوة</string>
     <string name="invite_code_copied_toast">تم نسخ رمز الدعوة!</string>
-    <string name="account_plan_label">الخطة: %1$s</string>
+    <string name="account_plan_label">الخطة</string>
     <string name="account_member_count_label">الأعضاء: %1$d / %2$d</string>
     <string name="plan_free">مجانية</string>
     <string name="plan_paid">مدفوعة</string>
@@ -101,4 +101,7 @@
     <string name="delete_account_confirm_member">ستتم إزالتك من \'%1$s\'. سيحتفظ الأعضاء الآخرون بالمنزل وقائمته.</string>
     <string name="delete_account_error_toast">فشل حذف الحساب. حاول مرة أخرى.</string>
     <string name="delete_account_success_toast">تم حذف الحساب.</string>
+    <string name="remove_member_button">إزالة</string>
+    <string name="remove_member_title">إزالة العضو؟</string>
+    <string name="remove_member_confirm">هل تريد إزالة %1$s من هذا المنزل؟ سيفقد إمكانية الوصول إلى القائمة المشتركة.</string>
 </resources>

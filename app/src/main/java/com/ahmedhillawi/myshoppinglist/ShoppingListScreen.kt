@@ -29,7 +29,7 @@ import com.ahmedhillawi.myshoppinglist.domain.Household
 import com.ahmedhillawi.myshoppinglist.domain.MeasurementUnit
 import com.ahmedhillawi.myshoppinglist.domain.ShoppingCategory
 import com.ahmedhillawi.myshoppinglist.domain.ShoppingItem
-import com.ahmedhillawi.myshoppinglist.ui.AccountDetailsDialog
+import com.ahmedhillawi.myshoppinglist.ui.AccountScreen
 import com.ahmedhillawi.myshoppinglist.ui.AddItemForm
 import com.ahmedhillawi.myshoppinglist.ui.DeleteAccountDialog
 import com.ahmedhillawi.myshoppinglist.ui.DeleteItemDialog
@@ -72,7 +72,7 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel, household: Household, h
     var itemToEdit by remember { mutableStateOf<ShoppingItem?>(null) }
     var editDraft by remember { mutableStateOf(ItemDraft("", "1", MeasurementUnit.PCS, ShoppingCategory.GENERAL)) }
 
-    var showAccountDialog by remember { mutableStateOf(false) }
+    var showAccountScreen by remember { mutableStateOf(false) }
     var showDeleteAccountConfirm by remember { mutableStateOf(false) }
     var isDeletingAccount by remember { mutableStateOf(false) }
 
@@ -90,6 +90,19 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel, household: Household, h
         newItemDraft = newItemDraft.copy(name = "", quantity = "1")
     }
 
+    if (showAccountScreen) {
+        AccountScreen(
+            household = household,
+            myRole = myRole,
+            onBack = { showAccountScreen = false },
+            onDeleteAccountClick = {
+                showAccountScreen = false
+                showDeleteAccountConfirm = true
+            }
+        )
+        return
+    }
+
     Scaffold(
         topBar = {
             ShoppingListTopBar(
@@ -97,7 +110,7 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel, household: Household, h
                 onCopyList = { copyListToClipboard(context, clipboard, scope, activeItems, household.name) },
                 onShareList = { shareList(context, activeItems, household.name) },
                 onCopyInviteCode = { copyInviteCodeToClipboard(context, clipboard, scope, household.inviteCode) },
-                onShowAccountDialog = { showAccountDialog = true },
+                onShowAccountScreen = { showAccountScreen = true },
                 onLogout = { scope.launch { supabase.auth.signOut() } }
             )
         }
@@ -161,19 +174,6 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel, household: Household, h
                         itemToEdit = null
                     },
                     onDismiss = { itemToEdit = null }
-                )
-            }
-
-            // Account details — editing details is still a planned follow-up, not built here
-            // since there's nothing yet to wire it to.
-            if (showAccountDialog) {
-                AccountDetailsDialog(
-                    household = household,
-                    onDismiss = { showAccountDialog = false },
-                    onDeleteAccountClick = {
-                        showAccountDialog = false
-                        showDeleteAccountConfirm = true
-                    }
                 )
             }
 
