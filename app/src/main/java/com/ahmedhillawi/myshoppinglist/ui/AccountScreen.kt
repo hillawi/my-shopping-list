@@ -1,6 +1,7 @@
 package com.ahmedhillawi.myshoppinglist.ui
 
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -45,6 +46,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.ahmedhillawi.myshoppinglist.R
@@ -88,6 +90,7 @@ fun AccountScreen(
     BackHandler(onBack = onBack)
 
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     val isOwner = myRole == "owner"
 
     var memberCount by remember { mutableStateOf<Int?>(null) }
@@ -197,10 +200,20 @@ fun AccountScreen(
                         supabase.from("household_members").delete { filter { eq("user_id", member.userId) } }
                         memberEmails = memberEmails.filter { it.userId != member.userId }
                         memberCount = memberCount?.let { it - 1 }
+                        Toast.makeText(
+                            context,
+                            context.getString(R.string.member_removed_toast, member.email),
+                            Toast.LENGTH_SHORT
+                        ).show()
                     } catch (e: CancellationException) {
                         throw e
                     } catch (e: Exception) {
                         Log.w("AccountScreen", "Failed to remove member", e)
+                        Toast.makeText(
+                            context,
+                            context.getString(R.string.member_removed_error_toast),
+                            Toast.LENGTH_SHORT
+                        ).show()
                     }
                     memberToRemove = null
                 }
