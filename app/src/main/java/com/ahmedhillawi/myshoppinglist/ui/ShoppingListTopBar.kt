@@ -41,7 +41,7 @@ fun ShoppingListTopBar(
     onCopyList: () -> Unit,
     onShareList: () -> Unit,
     onCopyInviteCode: () -> Unit,
-    onShowAccountDialog: () -> Unit,
+    onShowAccountScreen: () -> Unit,
     onLogout: () -> Unit
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
@@ -72,7 +72,7 @@ fun ShoppingListTopBar(
                     expanded = menuExpanded,
                     onDismiss = { menuExpanded = false },
                     onCopyInviteCode = onCopyInviteCode,
-                    onShowAccountDialog = onShowAccountDialog,
+                    onShowAccountScreen = onShowAccountScreen,
                     onLogout = onLogout
                 )
             }
@@ -85,7 +85,7 @@ private fun ShoppingListOverflowMenu(
     expanded: Boolean,
     onDismiss: () -> Unit,
     onCopyInviteCode: () -> Unit,
-    onShowAccountDialog: () -> Unit,
+    onShowAccountScreen: () -> Unit,
     onLogout: () -> Unit
 ) {
     val context = LocalContext.current
@@ -118,7 +118,7 @@ private fun ShoppingListOverflowMenu(
             text = { Text(stringResource(R.string.account_menu_item)) },
             leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
             onClick = {
-                onShowAccountDialog()
+                onShowAccountScreen()
                 onDismiss()
             }
         )
