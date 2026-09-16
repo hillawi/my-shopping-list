@@ -59,14 +59,14 @@ fun ShoppingListTopBar(
         ),
         actions = {
             IconButton(onClick = onCopyList) {
-                Icon(imageVector = Icons.Default.ContentCopy, contentDescription = "Copy List")
+                Icon(imageVector = Icons.Default.ContentCopy, contentDescription = stringResource(R.string.copy_list_description))
             }
             IconButton(onClick = onShareList) {
-                Icon(imageVector = Icons.Default.Share, contentDescription = "Share List")
+                Icon(imageVector = Icons.Default.Share, contentDescription = stringResource(R.string.share_list_description))
             }
             Box {
                 IconButton(onClick = { menuExpanded = true }) {
-                    Icon(Icons.Default.MoreVert, contentDescription = "Settings")
+                    Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.more_options_description))
                 }
                 ShoppingListOverflowMenu(
                     expanded = menuExpanded,

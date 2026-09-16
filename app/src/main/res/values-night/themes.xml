@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="Theme.MyShoppingList" parent="android:Theme.Material.Light.NoActionBar" />
+    <!-- Dark-mode override of the splash background only: windowSplashScreenBackground has no
+         other qualifier-based way to react to night mode, and the stock white flashed before the
+         themed (dark) Compose UI took over. -->
+    <style name="Theme.App.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">#101418</item>
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher_round</item>
+        <item name="postSplashScreenTheme">@style/Theme.MyShoppingList</item>
+    </style>
+</resources>

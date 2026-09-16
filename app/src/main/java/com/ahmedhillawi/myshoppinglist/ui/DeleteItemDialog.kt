@@ -16,10 +16,10 @@ fun DeleteItemDialog(itemName: String, onConfirm: () -> Unit, onDismiss: () -> U
         title = { Text(stringResource(R.string.delete_title)) },
         text = { Text(stringResource(R.string.delete_confirm, itemName)) },
         confirmButton = {
-            TextButton(onClick = onConfirm) { Text("Delete", color = Color.Red) }
+            TextButton(onClick = onConfirm) { Text(stringResource(R.string.delete_button), color = Color.Red) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel_button)) }
         }
     )
 }

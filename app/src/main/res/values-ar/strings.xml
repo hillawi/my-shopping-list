@@ -105,4 +105,13 @@
     <string name="remove_member_confirm">هل تريد إزالة %1$s من هذا المنزل؟ سيفقد إمكانية الوصول إلى القائمة المشتركة.</string>
     <string name="member_removed_toast">تمت إزالة %1$s من المنزل.</string>
     <string name="member_removed_error_toast">فشلت إزالة العضو. حاول مرة أخرى.</string>
+    <string name="delete_button">حذف</string>
+    <string name="loading_label">جارٍ التحميل…</string>
+    <string name="copy_list_description">نسخ القائمة</string>
+    <string name="share_list_description">مشاركة القائمة</string>
+    <string name="more_options_description">خيارات إضافية</string>
+    <string name="important_description">مهم</string>
+    <string name="decrease_quantity_description">إنقاص الكمية</string>
+    <string name="increase_quantity_description">زيادة الكمية</string>
+    <string name="empty_list_hint">أضف أول عنصر أعلاه للبدء.</string>
 </resources>

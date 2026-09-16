@@ -656,7 +656,7 @@ private fun SetNewPasswordForm(
         onClick = {
             handleSetNewPasswordClick(newPassword, confirmPassword, context, scope, isLoadingState, messageState, onSuccess)
         },
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().height(56.dp),
         enabled = !isLoading
     ) {
         if (isLoading) {
@@ -771,17 +771,17 @@ fun LoginScreen() {
                 onClick = {
                     handleSignInClick(email, password, context, scope, isLoadingState, messageState, showValidationErrorState)
                 },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().height(56.dp),
                 enabled = !isLoading
             ) {
-                Text(if (isLoading) "Loading..." else stringResource(R.string.sign_in))
+                Text(if (isLoading) stringResource(R.string.loading_label) else stringResource(R.string.sign_in))
             }
 
             Spacer(modifier = Modifier.height(8.dp))
 
             OutlinedButton(
                 onClick = { handleGoogleSignInClick(context, scope, isLoadingState, messageState) },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().height(56.dp),
                 enabled = !isLoading
             ) {
                 // Google's brand guidelines call for their actual multi-color "G" mark on a sign-in

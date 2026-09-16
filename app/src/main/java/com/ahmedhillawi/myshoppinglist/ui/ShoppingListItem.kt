@@ -37,6 +37,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
+import com.ahmedhillawi.myshoppinglist.R
 import com.ahmedhillawi.myshoppinglist.domain.ShoppingItem
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
@@ -136,7 +137,7 @@ private fun ImportantToggleButton(isImportant: Boolean, haptic: HapticFeedback, 
     ) {
         Icon(
             imageVector = if (isImportant) Icons.Filled.Star else Icons.Outlined.Star,
-            contentDescription = "Important",
+            contentDescription = stringResource(R.string.important_description),
             tint = if (isImportant) Color(0xFFFF9800) else Color.Gray.copy(alpha = 0.5f)
         )
     }
@@ -178,7 +179,7 @@ private fun QuantityStepper(
         IconButton(onClick = onDecrement, modifier = Modifier.size(28.dp)) {
             Icon(
                 imageVector = Icons.Default.Remove,
-                contentDescription = "Decrease quantity",
+                contentDescription = stringResource(R.string.decrease_quantity_description),
                 tint = color,
                 modifier = Modifier.size(16.dp)
             )
@@ -187,7 +188,7 @@ private fun QuantityStepper(
         IconButton(onClick = onIncrement, modifier = Modifier.size(28.dp)) {
             Icon(
                 imageVector = Icons.Default.Add,
-                contentDescription = "Increase quantity",
+                contentDescription = stringResource(R.string.increase_quantity_description),
                 tint = color,
                 modifier = Modifier.size(16.dp)
             )
