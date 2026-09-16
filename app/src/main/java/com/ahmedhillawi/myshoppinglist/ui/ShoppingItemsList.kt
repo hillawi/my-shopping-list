@@ -141,9 +141,10 @@ data class ShoppingItemActions(
 private fun SwipeToDeleteRow(item: ShoppingItem, actions: ShoppingItemActions) {
     val scope = rememberCoroutineScope()
     // Require a deliberate, near-full-width swipe so an errant drag while tapping the
-    // checkbox/star doesn't pop the delete dialog.
+    // checkbox/star doesn't pop the delete dialog. Bumped from 0.75 -- still triggering by
+    // accident at that threshold.
     val dismissState = rememberSwipeToDismissBoxState(
-        positionalThreshold = { totalDistance -> totalDistance * 0.75f }
+        positionalThreshold = { totalDistance -> totalDistance * 0.9f }
     )
 
     SwipeToDismissBox(
