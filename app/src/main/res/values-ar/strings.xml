@@ -101,4 +101,7 @@
     <string name="delete_account_confirm_member">ستتم إزالتك من \'%1$s\'. سيحتفظ الأعضاء الآخرون بالمنزل وقائمته.</string>
     <string name="delete_account_error_toast">فشل حذف الحساب. حاول مرة أخرى.</string>
     <string name="delete_account_success_toast">تم حذف الحساب.</string>
+    <string name="remove_member_button">إزالة</string>
+    <string name="remove_member_title">إزالة العضو؟</string>
+    <string name="remove_member_confirm">هل تريد إزالة %1$s من هذا المنزل؟ سيفقد إمكانية الوصول إلى القائمة المشتركة.</string>
 </resources>

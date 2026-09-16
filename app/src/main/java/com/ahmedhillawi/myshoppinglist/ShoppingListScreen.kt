@@ -93,6 +93,7 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel, household: Household, h
     if (showAccountScreen) {
         AccountScreen(
             household = household,
+            myRole = myRole,
             onBack = { showAccountScreen = false },
             onDeleteAccountClick = {
                 showAccountScreen = false

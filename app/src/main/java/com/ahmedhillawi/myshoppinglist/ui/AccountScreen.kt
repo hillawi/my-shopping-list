@@ -4,8 +4,10 @@ import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -17,7 +19,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.PersonRemove
 import androidx.compose.material.icons.filled.WorkspacePremium
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -27,6 +31,7 @@ import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -34,6 +39,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -45,9 +51,11 @@ import com.ahmedhillawi.myshoppinglist.R
 import com.ahmedhillawi.myshoppinglist.domain.Household
 import com.ahmedhillawi.myshoppinglist.supabase
 import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.rpc
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.launch
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -57,7 +65,8 @@ private data class HouseholdIdParam(@SerialName("p_household_id") val householdI
 @Serializable
 private data class HouseholdMemberEmail(
     @SerialName("user_id") val userId: String,
-    val email: String
+    val email: String,
+    val role: String
 )
 
 // Extracted out of ShoppingListScreen to keep that composable's own cognitive complexity down.
@@ -72,14 +81,19 @@ private data class HouseholdMemberEmail(
 @Composable
 fun AccountScreen(
     household: Household,
+    myRole: String?,
     onBack: () -> Unit,
     onDeleteAccountClick: () -> Unit
 ) {
     BackHandler(onBack = onBack)
 
+    val scope = rememberCoroutineScope()
+    val isOwner = myRole == "owner"
+
     var memberCount by remember { mutableStateOf<Int?>(null) }
     var memberLimit by remember { mutableStateOf<Int?>(null) }
     var memberEmails by remember { mutableStateOf<List<HouseholdMemberEmail>>(emptyList()) }
+    var memberToRemove by remember { mutableStateOf<HouseholdMemberEmail?>(null) }
 
     LaunchedEffect(household.id) {
         val householdId = household.id ?: return@LaunchedEffect
@@ -146,7 +160,17 @@ fun AccountScreen(
                     headlineContent = { Text(stringResource(R.string.account_member_count_label, count, limit)) },
                     supportingContent = {
                         Column {
-                            memberEmails.forEach { member -> Text(member.email) }
+                            memberEmails.forEach { member ->
+                                MemberRow(
+                                    member = member,
+                                    // Owners can't remove themselves or another owner this way --
+                                    // there's only ever one owner per household -- the RLS policy
+                                    // enforces this for real, this just keeps the button from
+                                    // showing where it could never succeed.
+                                    canRemove = isOwner && member.role != "owner",
+                                    onRemoveClick = { memberToRemove = member }
+                                )
+                            }
                         }
                     },
                     colors = ListItemDefaults.colors(containerColor = Color.Transparent)
@@ -163,6 +187,66 @@ fun AccountScreen(
             )
         }
     }
+
+    memberToRemove?.let { member ->
+        RemoveMemberDialog(
+            email = member.email,
+            onConfirm = {
+                scope.launch {
+                    try {
+                        supabase.from("household_members").delete { filter { eq("user_id", member.userId) } }
+                        memberEmails = memberEmails.filter { it.userId != member.userId }
+                        memberCount = memberCount?.let { it - 1 }
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        Log.w("AccountScreen", "Failed to remove member", e)
+                    }
+                    memberToRemove = null
+                }
+            },
+            onDismiss = { memberToRemove = null }
+        )
+    }
+}
+
+// Extracted out of AccountScreen's members supportingContent to keep that composable's own
+// cognitive complexity down.
+@Composable
+private fun MemberRow(member: HouseholdMemberEmail, canRemove: Boolean, onRemoveClick: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(text = member.email, style = MaterialTheme.typography.bodyLarge)
+        if (canRemove) {
+            IconButton(onClick = onRemoveClick) {
+                Icon(
+                    Icons.Default.PersonRemove,
+                    contentDescription = stringResource(R.string.remove_member_button)
+                )
+            }
+        }
+    }
+}
+
+// Extracted out of AccountScreen to keep that composable's own cognitive complexity down.
+@Composable
+private fun RemoveMemberDialog(email: String, onConfirm: () -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.remove_member_title)) },
+        text = { Text(stringResource(R.string.remove_member_confirm, email)) },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text(stringResource(R.string.remove_member_button), color = Color.Red)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel_button)) }
+        }
+    )
 }
 
 // Extracted out of AccountScreen's content to keep that composable's own cognitive complexity

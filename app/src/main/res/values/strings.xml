@@ -101,4 +101,7 @@
     <string name="delete_account_confirm_member">You\'ll be removed from \'%1$s\'. Other members keep the household and its list.</string>
     <string name="delete_account_error_toast">Failed to delete account. Please try again.</string>
     <string name="delete_account_success_toast">Account deleted.</string>
+    <string name="remove_member_button">Remove</string>
+    <string name="remove_member_title">Remove member?</string>
+    <string name="remove_member_confirm">Remove %1$s from this household? They\'ll lose access to the shared list.</string>
 </resources>
