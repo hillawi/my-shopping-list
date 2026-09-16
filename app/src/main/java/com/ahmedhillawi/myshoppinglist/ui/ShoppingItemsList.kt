@@ -26,21 +26,28 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxState
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.ahmedhillawi.myshoppinglist.R
 import com.ahmedhillawi.myshoppinglist.domain.ShoppingCategory
 import com.ahmedhillawi.myshoppinglist.domain.ShoppingItem
+import kotlin.math.abs
 import kotlinx.coroutines.launch
 
 // Extracted out of ShoppingListScreen to keep that composable's own cognitive complexity down.
@@ -140,15 +147,35 @@ data class ShoppingItemActions(
 @Composable
 private fun SwipeToDeleteRow(item: ShoppingItem, actions: ShoppingItemActions) {
     val scope = rememberCoroutineScope()
+    var rowWidthPx by remember { mutableFloatStateOf(0f) }
+    // Assigned right after rememberSwipeToDismissBoxState below, before any gesture can reach the
+    // confirmValueChange lambda that reads it -- captured by reference so the (necessarily
+    // self-referential) closure below always sees the real state once it's actually invoked.
+    var dismissStateRef: SwipeToDismissBoxState? = null
+
     // Require a deliberate, near-full-width swipe so an errant drag while tapping the
-    // checkbox/star doesn't pop the delete dialog. Bumped from 0.75 -- still triggering by
-    // accident at that threshold.
+    // checkbox/star doesn't pop the delete dialog. positionalThreshold alone isn't enough for a
+    // fast flick, though: Compose's built-in fling behavior hardcodes a 125dp/s velocity
+    // threshold with no public way to raise it (AnchoredDraggableDefaults.flingBehavior always
+    // completes the dismiss once a flick clears that speed, no matter how little distance it
+    // actually covered) -- confirmValueChange re-checks the real dragged distance against the
+    // measured row width, independent of velocity, so a quick flick needs the same 90% travel a
+    // slow drag does. This constructor overload is deprecated in this Material3 version with no
+    // non-deprecated replacement that supports a custom veto like this.
+    @Suppress("DEPRECATION")
     val dismissState = rememberSwipeToDismissBoxState(
+        confirmValueChange = { targetValue ->
+            val state = dismissStateRef
+            targetValue == SwipeToDismissBoxValue.Settled || state == null || rowWidthPx <= 0f ||
+                abs(state.requireOffset()) >= rowWidthPx * 0.9f
+        },
         positionalThreshold = { totalDistance -> totalDistance * 0.9f }
     )
+    dismissStateRef = dismissState
 
     SwipeToDismissBox(
         state = dismissState,
+        modifier = Modifier.onSizeChanged { rowWidthPx = it.width.toFloat() },
         enableDismissFromStartToEnd = false,
         // onDismiss only fires once the swipe has settled (i.e. after the thumb is released) --
         // unlike confirmValueChange, which fires live mid-drag and would pop the dialog too early.
