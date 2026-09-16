@@ -31,12 +31,13 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ahmedhillawi.myshoppinglist.R
+import com.ahmedhillawi.myshoppinglist.domain.MeasurementUnit
 import com.ahmedhillawi.myshoppinglist.domain.ShoppingCategory
 
 // Extracted out of ShoppingListScreen to keep that composable's own cognitive complexity down.
 // draft/onDraftChange bundle name+quantity+unit+category (see ItemDraft) rather than exposing
 // each field/onChange pair separately, to stay under SonarQube's 7-parameter threshold. Owns its
-// own category-dropdown-expanded state -- nothing outside this dialog needs it.
+// own category/unit-dropdown-expanded state -- nothing outside this dialog needs it.
 @Composable
 fun EditItemDialog(
     draft: ItemDraft,
@@ -45,6 +46,7 @@ fun EditItemDialog(
     onDismiss: () -> Unit
 ) {
     var categoryExpanded by remember { mutableStateOf(false) }
+    var unitExpanded by remember { mutableStateOf(false) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -116,7 +118,35 @@ fun EditItemDialog(
                     color = Color.Gray
                 )
                 Spacer(Modifier.height(4.dp))
-                UnitSelector(selectedUnit = draft.unit, onUnitSelected = { onDraftChange(draft.copy(unit = it)) })
+                // Same OutlinedCard + DropdownMenu presentation as the category picker above.
+                Box {
+                    OutlinedCard(
+                        onClick = { unitExpanded = true },
+                        modifier = Modifier.width(140.dp).height(56.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = stringResource(draft.unit.resId),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                    DropdownMenu(expanded = unitExpanded, onDismissRequest = { unitExpanded = false }) {
+                        MeasurementUnit.entries.forEach { unitEnum ->
+                            DropdownMenuItem(
+                                text = { Text(stringResource(unitEnum.resId)) },
+                                onClick = {
+                                    onDraftChange(draft.copy(unit = unitEnum))
+                                    unitExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
             }
         },
         confirmButton = {
