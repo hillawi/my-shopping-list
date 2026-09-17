@@ -123,6 +123,8 @@
     <string name="unarchive_button">Unarchive</string>
     <string name="plans_title">Plans</string>
     <string name="current_plan_badge">Current Plan</string>
+    <string name="plan_tier_silver">Silver</string>
+    <string name="plan_tier_gold">Gold</string>
     <string name="upgrade_coming_soon_button">Coming Soon</string>
     <string name="plan_feature_one_household">One household per account</string>
     <string name="plan_feature_two_members">Up to 2 members per household</string>
