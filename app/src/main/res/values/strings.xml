@@ -91,7 +91,7 @@
     <string name="copy_invite_code">Copy invite code</string>
     <string name="invite_code_copied_toast">Invite code copied!</string>
     <string name="account_plan_label">Plan</string>
-    <string name="account_member_count_label">Members: %1$d / %2$d</string>
+    <string name="account_member_count_label">Members (%1$d/%2$d)</string>
     <string name="plan_free">Free</string>
     <string name="plan_paid">Paid</string>
     <string name="delete_account_button">Delete Account</string>
@@ -105,6 +105,8 @@
     <string name="remove_member_confirm">Remove %1$s from this household? They\'ll lose access to the shared list.</string>
     <string name="member_removed_toast">%1$s removed from the household.</string>
     <string name="member_removed_error_toast">Failed to remove member. Please try again.</string>
+    <string name="member_you_suffix">%1$s (You)</string>
+    <string name="member_role_owner">Owner</string>
     <string name="delete_button">Delete</string>
     <string name="loading_label">Loading…</string>
     <string name="copy_list_description">Copy list</string>

@@ -91,7 +91,7 @@
     <string name="copy_invite_code">نسخ رمز الدعوة</string>
     <string name="invite_code_copied_toast">تم نسخ رمز الدعوة!</string>
     <string name="account_plan_label">الخطة</string>
-    <string name="account_member_count_label">الأعضاء: %1$d / %2$d</string>
+    <string name="account_member_count_label">الأعضاء (%1$d/%2$d)</string>
     <string name="plan_free">مجانية</string>
     <string name="plan_paid">مدفوعة</string>
     <string name="delete_account_button">حذف الحساب</string>
@@ -105,6 +105,8 @@
     <string name="remove_member_confirm">هل تريد إزالة %1$s من هذا المنزل؟ سيفقد إمكانية الوصول إلى القائمة المشتركة.</string>
     <string name="member_removed_toast">تمت إزالة %1$s من المنزل.</string>
     <string name="member_removed_error_toast">فشلت إزالة العضو. حاول مرة أخرى.</string>
+    <string name="member_you_suffix">%1$s (أنت)</string>
+    <string name="member_role_owner">المالك</string>
     <string name="delete_button">حذف</string>
     <string name="loading_label">جارٍ التحميل…</string>
     <string name="copy_list_description">نسخ القائمة</string>
