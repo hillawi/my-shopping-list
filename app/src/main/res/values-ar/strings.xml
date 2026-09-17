@@ -117,7 +117,7 @@
     <string name="archived_items_menu_item">العناصر المؤرشفة</string>
     <string name="archived_items_title">العناصر المؤرشفة</string>
     <string name="archive_action_description">أرشفة</string>
-    <string name="archive_paid_only_toast">الأرشفة ميزة للخطة المدفوعة. قم بالترقية لاستخدامها.</string>
+    <string name="archive_paid_only_toast">الأرشفة ميزة للخطة المدفوعة. للترقية، اذهب إلى الحساب ← الخطة.</string>
     <string name="archive_paid_only_message">أرشفة العناصر ميزة للخطة المدفوعة. قم بترقية خطة منزلك لمواصلة الأرشفة — أي عنصر تمت أرشفته من قبل يبقى ظاهرًا ويمكن استعادته من هنا.</string>
     <string name="archived_empty_message">لا توجد عناصر مؤرشفة حتى الآن</string>
     <string name="unarchive_button">إلغاء الأرشفة</string>
