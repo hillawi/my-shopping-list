@@ -121,4 +121,14 @@
     <string name="archive_paid_only_message">Archiving items is a Paid feature. Upgrade your household\'s plan to keep archiving items — anything already archived stays visible and can still be restored here.</string>
     <string name="archived_empty_message">No archived items yet</string>
     <string name="unarchive_button">Unarchive</string>
+    <string name="plans_title">Plans</string>
+    <string name="current_plan_badge">Current Plan</string>
+    <string name="upgrade_coming_soon_button">Coming Soon</string>
+    <string name="plan_feature_one_household">One household per account</string>
+    <string name="plan_feature_two_members">Up to 2 members per household</string>
+    <string name="plan_feature_realtime_list">Real-time shared shopping list</string>
+    <string name="plan_feature_30_day_history">Purchase history for the last 30 days</string>
+    <string name="plan_feature_ten_members">Up to 10 members per household</string>
+    <string name="plan_feature_unlimited_history">Unlimited purchase history</string>
+    <string name="plan_feature_archive">Archive items to keep them out of your list and history without deleting them</string>
 </resources>
