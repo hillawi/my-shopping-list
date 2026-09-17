@@ -203,7 +203,7 @@ private fun SwipeActionsRow(item: ShoppingItem, actions: ShoppingItemActions, is
                     if (isPaidPlan) {
                         actions.onSwipeToArchive(item)
                     } else {
-                        Toast.makeText(context, context.getString(R.string.archive_paid_only_toast), Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, context.getString(R.string.archive_paid_only_toast), Toast.LENGTH_LONG).show()
                     }
                 }
                 SwipeToDismissBoxValue.Settled -> Unit
