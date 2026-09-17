@@ -222,13 +222,15 @@ enable_signup = true
 # addresses. If disabled, only the new email is required to confirm.
 double_confirm_changes = true
 # If enabled, users need to confirm their email address before signing in.
-enable_confirmations = false
+enable_confirmations = true
 # If enabled, users will need to reauthenticate or have logged in recently to change their password.
 secure_password_change = false
 # Controls the minimum amount of time that must pass before sending another signup confirmation or password reset email.
 max_frequency = "1s"
-# Number of characters used in the email OTP.
-otp_length = 6
+# Number of characters used in the email OTP. Matches production's real value (confirmed via
+# `supabase config diff`) rather than the CLI's scaffold default, since the app's OTP entry UI
+# renders exactly this many input boxes -- a mismatch here would silently break local testing.
+otp_length = 8
 # Number of seconds before the email OTP expires (defaults to 1 hour).
 otp_expiry = 3600
 
@@ -243,8 +245,12 @@ otp_expiry = 3600
 # sender_name = "Admin"
 
 [auth.email.template.confirmation]
-subject = "Confirm your MyShoppingList signup"
+subject = "MyShoppingList - Confirm your signup"
 content_path = "./supabase/templates/confirmation.html"
+
+[auth.email.template.recovery]
+subject = "MyShoppingList - Reset your password"
+content_path = "./supabase/templates/recovery.html"
 
 # Uncomment to customize email template
 # [auth.email.template.invite]
@@ -337,6 +343,21 @@ skip_nonce_check = false
 # If enabled, it will allow the user to successfully authenticate when the provider does not return an email address.
 email_optional = false
 
+# Native "Continue with Google" via Android's Credential Manager (see LoginScreen.kt's
+# handleGoogleSignInClick) -- no browser redirect, so redirect_uri/url below are left at their
+# scaffold defaults. client_id is the OAuth 2.0 "Web application" client from Google Cloud
+# Console (Credential Manager calls it the serverClientId) -- GoTrue checks the Google ID token's
+# aud claim against this same value, so it has to be the Web client, not the Android one.
+[auth.external.google]
+enabled = true
+client_id = "168994394505-91kc001ul4rqltovea0j4hmcpohp8v7s.apps.googleusercontent.com"
+# DO NOT commit your OAuth provider secret to git. Use environment variable substitution instead:
+secret = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET)"
+redirect_uri = ""
+url = ""
+skip_nonce_check = false
+email_optional = false
+
 # Allow Solana wallet holders to sign in to your project via the Sign in with Solana (SIWS, EIP-4361) standard.
 # You can configure "web3" rate limit in the [auth.rate_limit] section and set up [auth.captcha] if self-hosting.
 [auth.web3.solana]
@@ -417,3 +438,14 @@ enabled = true
 # formatted with uppercase keywords, indent 2, max width 180, trailing commas,
 # and column/key alignment. Set to "null" to emit raw, unformatted SQL.
 # format_options = "{\"keywordCase\":\"upper\",\"indent\":2,\"maxWidth\":180,\"commaStyle\":\"trailing\"}"
+
+[functions.delete-account]
+enabled = true
+verify_jwt = false
+import_map = "./functions/delete-account/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/delete-account/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/delete-account/*.html" ]

@@ -42,14 +42,24 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             val sessionStatus by supabase.auth.sessionStatus.collectAsState()
+            val recoveryInProgress by isPasswordRecoveryInProgress
 
             MyShoppingListTheme() {
                 Surface(color = MaterialTheme.colorScheme.background) {
-                    when(sessionStatus) {
-                        is SessionStatus.Authenticated -> {
+                    when {
+                        // Combined into one condition (rather than a separate recoveryInProgress
+                        // branch above this one) deliberately: LoginScreen() must stay the exact
+                        // same call site while `recoveryInProgress` flips from false to true mid
+                        // flow, or Compose treats the switch between `when` branches as leaving
+                        // one group and entering another, disposing LoginScreen's remembered
+                        // state (the pending OTP email, everything) and remounting it from
+                        // scratch right as the OTP screen should appear.
+                        recoveryInProgress || sessionStatus !is SessionStatus.Authenticated -> LoginScreen()
+                        else -> {
                             val householdViewModel: HouseholdViewModel by viewModels()
                             val household by householdViewModel.household.collectAsState()
                             val isLoadingHousehold by householdViewModel.isLoading.collectAsState()
+                            val resolvedUserId by householdViewModel.resolvedUserId.collectAsState()
                             val viewModel: ShoppingListViewModel by viewModels()
 
                             // Both ViewModels are retrieved via `by viewModels()` and survive a
@@ -60,11 +70,21 @@ class MainActivity : ComponentActivity() {
                             val userId = (sessionStatus as SessionStatus.Authenticated).session.user?.id
                             LaunchedEffect(userId) {
                                 viewModel.reset()
-                                householdViewModel.resolveHousehold()
+                                userId?.let { householdViewModel.resolveHousehold(it) }
                             }
 
                             when {
-                                isLoadingHousehold -> {
+                                // resolvedUserId != userId (not just isLoadingHousehold) catches
+                                // the frame where a new user just signed in but resolveHousehold()
+                                // hasn't run yet: LaunchedEffect(userId) above is a post-composition
+                                // side effect, so this very composition still sees `household` and
+                                // `isLoadingHousehold` exactly as the previous user left them.
+                                // Without this check that stale household briefly renders under
+                                // the new user's identity, ShoppingListViewModel.start() fires for
+                                // it once, and its own idempotency guard then permanently ignores
+                                // the correct start() call once the new user legitimately joins
+                                // that same household later.
+                                isLoadingHousehold || resolvedUserId != userId -> {
                                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                                         CircularProgressIndicator()
                                     }
@@ -77,12 +97,9 @@ class MainActivity : ComponentActivity() {
                                     LaunchedEffect(currentHousehold.id) {
                                         viewModel.start(currentHousehold.id!!)
                                     }
-                                    ShoppingListScreen(viewModel, currentHousehold)
+                                    ShoppingListScreen(viewModel, currentHousehold, householdViewModel)
                                 }
                             }
-                        }
-                        else -> {
-                            LoginScreen()
                         }
                     }
                 }

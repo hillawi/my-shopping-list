@@ -60,7 +60,7 @@ fun HouseholdOnboardingScreen(viewModel: HouseholdViewModel) {
             Button(
                 onClick = { viewModel.joinHousehold(inviteCode) },
                 enabled = inviteCode.isNotBlank() && !isSubmitting,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth().height(56.dp)
             ) {
                 Text(stringResource(R.string.join_household_button))
             }
@@ -83,7 +83,7 @@ fun HouseholdOnboardingScreen(viewModel: HouseholdViewModel) {
             Button(
                 onClick = { viewModel.createHousehold(householdName) },
                 enabled = householdName.isNotBlank() && !isSubmitting,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth().height(56.dp)
             ) {
                 Text(stringResource(R.string.create_household_button))
             }
@@ -101,6 +101,7 @@ fun HouseholdOnboardingScreen(viewModel: HouseholdViewModel) {
             Text(
                 text = when (it) {
                     HouseholdError.INVALID_CODE -> stringResource(R.string.invalid_invite_code_error)
+                    HouseholdError.MEMBER_LIMIT_REACHED -> stringResource(R.string.household_member_limit_error)
                     HouseholdError.GENERIC -> stringResource(R.string.household_generic_error)
                 },
                 color = MaterialTheme.colorScheme.error

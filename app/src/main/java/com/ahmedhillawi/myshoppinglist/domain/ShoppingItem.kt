@@ -21,5 +21,9 @@ data class ShoppingItem(
     @SerialName("is_important")
     val isImportant: Boolean = false,
     @SerialName("household_id")
-    val householdId: String? = null
+    val householdId: String? = null,
+    @SerialName("is_archived")
+    val isArchived: Boolean = false,
+    @SerialName("archived_at")
+    val archivedAt: String? = null
 )

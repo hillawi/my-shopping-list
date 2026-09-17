@@ -75,7 +75,7 @@ ever changes: the manifest's intent-filter, this Auth config, and Supabase's Sit
 
 ## Status
 
-Version 1.1.0 — running in production.
+Version 2.0.0 — running in production.
 
 ## Contributing
 

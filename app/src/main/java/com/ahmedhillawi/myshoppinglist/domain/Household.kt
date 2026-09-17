@@ -10,5 +10,6 @@ data class Household(
     @SerialName("invite_code")
     val inviteCode: String? = null,
     @SerialName("created_at")
-    val createdAt: String? = null
+    val createdAt: String? = null,
+    val plan: String = "free"
 )

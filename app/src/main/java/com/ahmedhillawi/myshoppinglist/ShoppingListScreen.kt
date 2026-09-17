@@ -1,64 +1,17 @@
 package com.ahmedhillawi.myshoppinglist
 
-import android.app.LocaleManager
 import android.content.ClipData
 import android.content.Context
 import android.content.Intent
-import android.os.LocaleList
 import android.widget.Toast
-import androidx.appcompat.app.AppCompatDelegate
-import androidx.compose.foundation.background
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ExitToApp
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Language
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Share
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedCard
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.SwipeToDismissBox
-import androidx.compose.material3.SwipeToDismissBoxValue
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -66,85 +19,67 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.Clipboard
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ahmedhillawi.myshoppinglist.domain.Household
 import com.ahmedhillawi.myshoppinglist.domain.MeasurementUnit
 import com.ahmedhillawi.myshoppinglist.domain.ShoppingCategory
 import com.ahmedhillawi.myshoppinglist.domain.ShoppingItem
-import com.ahmedhillawi.myshoppinglist.ui.ShoppingListItem
+import com.ahmedhillawi.myshoppinglist.ui.AccountScreen
+import com.ahmedhillawi.myshoppinglist.ui.AddItemForm
+import com.ahmedhillawi.myshoppinglist.ui.ArchivedItemsScreen
+import com.ahmedhillawi.myshoppinglist.ui.DeleteAccountDialog
+import com.ahmedhillawi.myshoppinglist.ui.DeleteItemDialog
+import com.ahmedhillawi.myshoppinglist.ui.EditItemDialog
+import com.ahmedhillawi.myshoppinglist.ui.ItemDraft
+import com.ahmedhillawi.myshoppinglist.ui.ShoppingItemActions
+import com.ahmedhillawi.myshoppinglist.ui.ShoppingItemsList
+import com.ahmedhillawi.myshoppinglist.ui.ShoppingListTopBar
+import com.ahmedhillawi.myshoppinglist.viewmodel.HouseholdViewModel
 import com.ahmedhillawi.myshoppinglist.viewmodel.ShoppingListViewModel
 import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.functions.functions
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
+// Orchestrates the screen's state and wires it into the sub-composables under ui/ -- this used
+// to be one ~900-line composable (Cognitive Complexity 125, SonarQube's threshold is 15); each
+// major section (top bar, add-item form, the items list, each dialog) now owns its own file, and
+// the top-bar actions/delete-account flow below are extracted into plain functions for the same
+// reason -- this function's job is just to hold state and connect callbacks, not contain branching
+// logic itself. See CLAUDE.md's Testing section for why this seam pattern exists elsewhere too.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ShoppingListScreen(viewModel: ShoppingListViewModel, household: Household) {
+fun ShoppingListScreen(viewModel: ShoppingListViewModel, household: Household, householdViewModel: HouseholdViewModel) {
     val activeItems by viewModel.activeItems.collectAsState()
     val purchasedItems by viewModel.purchasedItems.collectAsState()
-
-    // State for the Settings Menu
-    var menuExpanded by remember { mutableStateOf(false) }
-
-    var selectedUnit by remember { mutableStateOf(MeasurementUnit.PCS) }
-
-    // Get current language
-    val currentLocale = AppCompatDelegate.getApplicationLocales()[0]?.language ?: "en"
+    val archivedItems by viewModel.archivedItems.collectAsState()
+    val myRole by householdViewModel.myRole.collectAsState()
+    val isPaidPlan = household.plan == "paid"
 
     val context = LocalContext.current
     val clipboard = LocalClipboard.current
     val scope = rememberCoroutineScope()
 
-    val shareList = {
-        val sendIntent: Intent = Intent().apply {
-            action = Intent.ACTION_SEND
-            putExtra(Intent.EXTRA_TEXT, generateShareText(context, activeItems, household.name))
-            type = "text/plain"
-        }
-        val shareIntent = Intent.createChooser(sendIntent, null)
-        context.startActivity(shareIntent)
-    }
+    var newItemDraft by remember { mutableStateOf(ItemDraft("", "1", MeasurementUnit.PCS, ShoppingCategory.GENERAL)) }
 
-    val copyToClipboard = {
-        val textToCopy = generateShareText(context, activeItems, household.name)
-        scope.launch {
-            val copied = copyPlainTextToClipboard(clipboard, "Shopping List", textToCopy)
-            val messageRes = if (copied) R.string.copied_toast else R.string.copy_failed_toast
-            Toast.makeText(context, context.getString(messageRes), Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    val copyInviteCode = {
-        scope.launch {
-            val copied = copyPlainTextToClipboard(clipboard, "Household Invite Code", household.inviteCode.orEmpty())
-            val messageRes = if (copied) R.string.invite_code_copied_toast else R.string.copy_failed_toast
-            Toast.makeText(context, context.getString(messageRes), Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    var itemName by remember { mutableStateOf("") }
-    var itemQuantity by remember { mutableStateOf("1") }
     var itemToDelete by remember { mutableStateOf<ShoppingItem?>(null) }
+
     var itemToEdit by remember { mutableStateOf<ShoppingItem?>(null) }
-    var showAccountDialog by remember { mutableStateOf(false) }
-    var editName by remember { mutableStateOf("") }
-    var editQuantity by remember { mutableStateOf("1") }
-    var editUnit by remember { mutableStateOf(MeasurementUnit.PCS) }
-    var editCategory by remember { mutableStateOf(ShoppingCategory.GENERAL) }
-    var editCategoryExpanded by remember { mutableStateOf(false) }
-    var expanded by remember { mutableStateOf(false) }
-    var selectedCategory by remember { mutableStateOf(ShoppingCategory.GENERAL) }
+    var editDraft by remember { mutableStateOf(ItemDraft("", "1", MeasurementUnit.PCS, ShoppingCategory.GENERAL)) }
+
+    var showAccountScreen by remember { mutableStateOf(false) }
+    var showArchivedScreen by remember { mutableStateOf(false) }
+    var showDeleteAccountConfirm by remember { mutableStateOf(false) }
+    var isDeletingAccount by remember { mutableStateOf(false) }
+
     var purchasedSearchQuery by remember { mutableStateOf("") }
     val filteredPurchasedItems = remember(purchasedItems, purchasedSearchQuery) {
         if (purchasedSearchQuery.isBlank()) {
@@ -154,105 +89,47 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel, household: Household) {
         }
     }
 
+    fun submitNewItem() {
+        viewModel.addOrUpdateItem(newItemDraft.name, newItemDraft.quantity, newItemDraft.unit, newItemDraft.category)
+        newItemDraft = newItemDraft.copy(name = "", quantity = "1")
+    }
+
+    if (showAccountScreen) {
+        AccountScreen(
+            household = household,
+            myRole = myRole,
+            onBack = { showAccountScreen = false },
+            onDeleteAccountClick = {
+                showAccountScreen = false
+                showDeleteAccountConfirm = true
+            }
+        )
+        return
+    }
+
+    if (showArchivedScreen) {
+        ArchivedItemsScreen(
+            isPaidPlan = isPaidPlan,
+            archivedItems = archivedItems,
+            onUnarchive = { item ->
+                viewModel.unarchiveItem(item)
+                Toast.makeText(context, context.getString(R.string.item_restored_toast, item.name), Toast.LENGTH_SHORT).show()
+            },
+            onBack = { showArchivedScreen = false }
+        )
+        return
+    }
+
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text(stringResource(R.string.app_name))
-                        Text(household.name, style = MaterialTheme.typography.labelMedium)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                ),
-                actions = {
-                    // 1. Copy Button
-                    IconButton(onClick = {copyToClipboard()}) {
-                        Icon(
-                            imageVector = Icons.Default.ContentCopy,
-                            contentDescription = "Copy List"
-                        )
-                    }
-                    // 2. Share Button
-                    IconButton(onClick = { shareList() }) {
-                        Icon(
-                            imageVector = Icons.Default.Share,
-                            contentDescription = "Share List"
-                        )
-                    }
-                    // 3. Settings/Language Menu
-                    Box {
-                        IconButton(onClick = { menuExpanded = true }) {
-                            Icon(Icons.Default.MoreVert, contentDescription = "Settings")
-                        }
-                        DropdownMenu(
-                            expanded = menuExpanded,
-                            onDismissRequest = { menuExpanded = false }
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.copy_invite_code)) },
-                                leadingIcon = { Icon(Icons.Default.ContentCopy, contentDescription = null) },
-                                onClick = {
-                                    copyInviteCode()
-                                    menuExpanded = false
-                                }
-                            )
-                            HorizontalDivider()
-                            // Inside your TopAppBar actions:
-                            val localeManager = context.getSystemService(LocaleManager::class.java)
-                            // 1. Get current language tag
-                            val currentTag = if (!localeManager.applicationLocales.isEmpty) {
-                                localeManager.applicationLocales[0].toLanguageTag()
-                            } else "en"
-                            val targetLanguageLabel = if (currentTag.contains("ar")) "English" else "العربية"
-                            DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        text = targetLanguageLabel,
-                                        style = MaterialTheme.typography.labelLarge
-                                    )
-                                },
-                                leadingIcon = { Icon(Icons.Default.Language, contentDescription = null) },
-                                onClick = {
-                                    // 3. Toggle: If it contains "ar", switch to "en", otherwise "ar"
-                                    val newTag = if (currentTag.contains("ar")) "en" else "ar"
-                                    // 4. Apply the new locale (This triggers Activity recreation automatically!)
-                                    localeManager.applicationLocales = LocaleList.forLanguageTags(newTag)
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.account_menu_item)) },
-                                leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
-                                onClick = {
-                                    showAccountDialog = true
-                                    menuExpanded = false
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.logout)) },
-                                leadingIcon = { Icon(Icons.AutoMirrored.Default.ExitToApp, contentDescription = null)},
-                                onClick = {
-                                    scope.launch {
-                                        supabase.auth.signOut()
-                                    }
-                                }
-                            )
-                            HorizontalDivider()
-                            DropdownMenuItem(
-                                enabled = false,
-                                text = {
-                                    Text(
-                                        text = "v${BuildConfig.VERSION_NAME} (${BuildConfig.BUILD_TIMESTAMP})",
-                                        style = MaterialTheme.typography.labelSmall
-                                    )
-                                },
-                                onClick = {}
-                            )
-                        }
-                    }
-                },
+            ShoppingListTopBar(
+                householdName = household.name,
+                onCopyList = { copyListToClipboard(context, clipboard, scope, activeItems, household.name) },
+                onShareList = { shareList(context, activeItems, household.name) },
+                onCopyInviteCode = { copyInviteCodeToClipboard(context, clipboard, scope, household.inviteCode) },
+                onShowAccountScreen = { showAccountScreen = true },
+                onShowArchivedItems = { showArchivedScreen = true },
+                onLogout = { scope.launch { supabase.auth.signOut() } }
             )
         }
     ) { paddingValues ->
@@ -262,426 +139,136 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel, household: Household) {
                 .padding(paddingValues)
                 .padding(16.dp)
         ) {
-            // --- 1. BETTER INPUT LAYOUT (Stacked) ---
             Column(modifier = Modifier.fillMaxWidth()) {
-                // --- 1. INPUT SECTION ---
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    // ROW A: Name and Qty Inputs
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        OutlinedTextField(
-                            value = itemName,
-                            onValueChange = { itemName = it },
-                            modifier = Modifier.weight(1f),
-                            label = { Text(stringResource(R.string.item_name_label)) },
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
-                        )
-
-                        Spacer(modifier = Modifier.width(8.dp))
-
-                        OutlinedTextField(
-                            value = itemQuantity,
-                            onValueChange = { itemQuantity = it },
-                            modifier = Modifier.width(100.dp), // Wider for "1.5 kg"
-                            label = { Text(stringResource(R.string.qty_label)) },
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                            keyboardActions = KeyboardActions(onDone = {
-                                if (itemName.isNotBlank()) {
-                                    viewModel.addOrUpdateItem(
-                                        itemName,
-                                        itemQuantity,
-                                        selectedUnit,
-                                        selectedCategory
-                                    )
-                                    itemName = ""
-                                    itemQuantity = "1"
-                                    selectedUnit = MeasurementUnit.PCS
-                                }
-                            })
-                        )
-                    }
-
-                    // ROW B: Unit Chips (Smart Suggestions)
-                    // This sits right below the inputs for easy tapping
-                    LazyRow(
-                        modifier = Modifier.padding(vertical = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        items(MeasurementUnit.entries.toTypedArray()) { unitEnum ->
-                            // Using FilterChip or SuggestionChip
-                            FilterChip(
-                                selected = selectedUnit == unitEnum,
-                                onClick = {
-                                    selectedUnit = unitEnum
-                                },
-                                label = {
-                                    // This fetches the translated label automatically
-                                    Text(stringResource(unitEnum.resId))
-                                },
-                                leadingIcon = if (selectedUnit == unitEnum) {
-                                    { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
-                                } else null
-                            )
-                        }
-                    }
-
-                    // ROW C: Category & Button
-                    Row(Modifier.fillMaxWidth()) {
-                        // Category Dropdown
-                        Box(modifier = Modifier.weight(1f)) {
-                            OutlinedCard(
-                                onClick = { expanded = true },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(56.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .padding(horizontal = 12.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(selectedCategory.icon, null, modifier = Modifier.size(20.dp))
-                                    Spacer(Modifier.width(8.dp))
-                                    Text(stringResource(selectedCategory.resId))
-                                }
-                            }
-                            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                                ShoppingCategory.entries.forEach { cat ->
-                                    DropdownMenuItem(
-                                        text = {
-                                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                                Icon(cat.icon, null, modifier = Modifier.size(18.dp))
-                                                Spacer(Modifier.width(12.dp))
-                                                Text(stringResource(cat.resId))
-                                            }
-                                        },
-                                        onClick = {
-                                            selectedCategory = cat
-                                            expanded = false
-                                        }
-                                    )
-                                }
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.width(8.dp))
-
-                        Button(
-                            onClick = {
-                                if (itemName.isNotBlank()) {
-                                    viewModel.addOrUpdateItem(
-                                        itemName,
-                                        itemQuantity,
-                                        selectedUnit,
-                                        selectedCategory
-                                    )
-                                    itemName = ""
-                                    itemQuantity = "1"
-                                }
-                            },
-                            modifier = Modifier.height(56.dp)
-                        ) {
-                            Text(stringResource(R.string.add_button))
-                        }
-                    }
-                }
+                AddItemForm(
+                    draft = newItemDraft,
+                    onDraftChange = { newItemDraft = it },
+                    onSubmitViaKeyboard = {
+                        submitNewItem()
+                        newItemDraft = newItemDraft.copy(unit = MeasurementUnit.PCS)
+                    },
+                    onSubmitViaButton = { submitNewItem() }
+                )
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // --- 2. UNIFIED LIST (Active + History) ---
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(bottom = 16.dp)
-                ) {
-                    // PART A: ACTIVE ITEMS (Grouped)
-                    activeItems.forEach { (category, items) ->
-                        stickyHeader { CategoryHeader(category) }
-
-                        items(items, key = { "active_${it.id}" }) { item ->
-                            // Require a deliberate, near-full-width swipe so an errant drag
-                            // while tapping the checkbox/star doesn't pop the delete dialog.
-                            val dismissState = rememberSwipeToDismissBoxState(
-                                positionalThreshold = { totalDistance -> totalDistance * 0.75f }
-                            )
-
-                            SwipeToDismissBox(
-                                state = dismissState,
-                                enableDismissFromStartToEnd = false,
-                                // onDismiss only fires once the swipe has settled (i.e. after
-                                // the thumb is released) — unlike confirmValueChange, which
-                                // fires live mid-drag and would pop the dialog too early.
-                                onDismiss = {
-                                    itemToDelete = item // Triggers the AlertDialog
-                                    scope.launch { dismissState.reset() }
-                                },
-                                backgroundContent = {
-                                    val color = if (dismissState.dismissDirection != SwipeToDismissBoxValue.Settled) Color.Red else Color.Transparent
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .background(color)
-                                            .padding(horizontal = 20.dp),
-                                        contentAlignment = Alignment.CenterEnd
-                                    ) {
-                                        Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.White)
-                                    }
-                                }
-                            ) {
-                                Surface(color = MaterialTheme.colorScheme.surface) {
-                                    // Parameter 'onDelete' is now gone!
-                                    ShoppingListItem(
-                                        item = item,
-                                        onCheckedChange = { viewModel.togglePurchased(item) },
-                                        onImportantToggle = { viewModel.toggleImportant(item) },
-                                        onEdit = {
-                                            itemToEdit = item
-                                            editName = item.name
-                                            editQuantity = item.quantity
-                                            editUnit = item.unit
-                                            editCategory = ShoppingCategory.fromString(item.category)
-                                            editCategoryExpanded = false
-                                        },
-                                        onIncrementQuantity = { viewModel.adjustQuantity(item, increase = true) },
-                                        onDecrementQuantity = { viewModel.adjustQuantity(item, increase = false) }
-                                    )
-                                }
-                            }
-                            HorizontalDivider()
-                        }
-                    }
-
-                    // PART B: HISTORY / PANTRY (If exists)
-                    if (purchasedItems.isNotEmpty()) {
-                        item {
-                            Spacer(modifier = Modifier.height(24.dp))
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                HorizontalDivider(modifier = Modifier.weight(1f))
-                                Text(
-                                    stringResource(R.string.history_header),
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = Color.Gray,
-                                    modifier = Modifier.padding(horizontal = 8.dp)
-                                )
-                                HorizontalDivider(modifier = Modifier.weight(1f))
-                            }
-                            OutlinedTextField(
-                                value = purchasedSearchQuery,
-                                onValueChange = { purchasedSearchQuery = it },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = 8.dp),
-                                placeholder = { Text(stringResource(R.string.search_purchased_hint)) },
-                                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                                trailingIcon = {
-                                    if (purchasedSearchQuery.isNotEmpty()) {
-                                        IconButton(onClick = { purchasedSearchQuery = "" }) {
-                                            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.clear_search_description))
-                                        }
-                                    }
-                                },
-                                singleLine = true
-                            )
-                        }
-
-                        if (filteredPurchasedItems.isEmpty()) {
-                            item {
-                                Text(
-                                    stringResource(R.string.no_purchased_items_match, purchasedSearchQuery),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = Color.Gray,
-                                    modifier = Modifier.padding(vertical = 16.dp)
-                                )
-                            }
-                        }
-
-                        items(filteredPurchasedItems, key = { "history_${it.id}" }) { item ->
-                            val dismissState = rememberSwipeToDismissBoxState(
-                                positionalThreshold = { totalDistance -> totalDistance * 0.75f }
-                            )
-
-                            SwipeToDismissBox(
-                                state = dismissState,
-                                enableDismissFromStartToEnd = false,
-                                onDismiss = {
-                                    itemToDelete = item // Triggers the AlertDialog
-                                    scope.launch { dismissState.reset() }
-                                },
-                                backgroundContent = {
-                                    val color = if (dismissState.dismissDirection != SwipeToDismissBoxValue.Settled) Color.Red else Color.Transparent
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .background(color)
-                                            .padding(horizontal = 20.dp),
-                                        contentAlignment = Alignment.CenterEnd
-                                    ) {
-                                        Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.White)
-                                    }
-                                }
-                            ) {
-                                Surface(color = MaterialTheme.colorScheme.surface) {
-                                    ShoppingListItem(
-                                        item = item,
-                                        onCheckedChange = { viewModel.togglePurchased(item) },
-                                        onImportantToggle = { viewModel.toggleImportant(item) },
-                                        onEdit = {
-                                            itemToEdit = item
-                                            editName = item.name
-                                            editQuantity = item.quantity
-                                            editUnit = item.unit
-                                            editCategory = ShoppingCategory.fromString(item.category)
-                                            editCategoryExpanded = false
-                                        },
-                                        onIncrementQuantity = { viewModel.adjustQuantity(item, increase = true) },
-                                        onDecrementQuantity = { viewModel.adjustQuantity(item, increase = false) }
-                                    )
-                                }
-                            }
-                            HorizontalDivider()
-                        }
-                    }
-                }
+                ShoppingItemsList(
+                    activeItems = activeItems,
+                    purchasedItems = purchasedItems,
+                    filteredPurchasedItems = filteredPurchasedItems,
+                    purchasedSearchQuery = purchasedSearchQuery,
+                    onPurchasedSearchQueryChange = { purchasedSearchQuery = it },
+                    isPaidPlan = isPaidPlan,
+                    actions = ShoppingItemActions(
+                        onSwipeToDelete = { itemToDelete = it },
+                        onSwipeToArchive = { item ->
+                            viewModel.archiveItem(item)
+                            Toast.makeText(context, context.getString(R.string.item_archived_toast, item.name), Toast.LENGTH_SHORT).show()
+                        },
+                        onCheckedChange = { viewModel.togglePurchased(it) },
+                        onImportantToggle = { viewModel.toggleImportant(it) },
+                        onEdit = { item ->
+                            itemToEdit = item
+                            editDraft = ItemDraft(item.name, item.quantity, item.unit, ShoppingCategory.fromString(item.category))
+                        },
+                        onIncrementQuantity = { viewModel.adjustQuantity(it, increase = true) },
+                        onDecrementQuantity = { viewModel.adjustQuantity(it, increase = false) }
+                    )
+                )
             }
 
-            // Delete Dialog
             itemToDelete?.let { item ->
-                AlertDialog(
-                    onDismissRequest = { itemToDelete = null },
-                    title = { Text(stringResource(R.string.delete_title)) },
-                    text = { Text(stringResource(R.string.delete_confirm, item.name)) },
-                    confirmButton = {
-                        TextButton(onClick = {
-                            viewModel.removeItem(item)
-                            itemToDelete = null
-                        }) { Text("Delete", color = Color.Red) }
+                DeleteItemDialog(
+                    itemName = item.name,
+                    onConfirm = {
+                        viewModel.removeItem(item)
+                        itemToDelete = null
                     },
-                    dismissButton = {
-                        TextButton(onClick = { itemToDelete = null }) { Text("Cancel") }
-                    }
+                    onDismiss = { itemToDelete = null }
                 )
             }
 
-            // Edit Item Dialog
             itemToEdit?.let { item ->
-                AlertDialog(
-                    onDismissRequest = { itemToEdit = null },
-                    title = { Text(stringResource(R.string.edit_title)) },
-                    text = {
-                        Column {
-                            OutlinedTextField(
-                                value = editName,
-                                onValueChange = { editName = it },
-                                modifier = Modifier.fillMaxWidth(),
-                                label = { Text(stringResource(R.string.item_name_label)) },
-                                singleLine = true
-                            )
-
-                            Spacer(Modifier.height(8.dp))
-
-                            OutlinedTextField(
-                                value = editQuantity,
-                                onValueChange = { editQuantity = it },
-                                modifier = Modifier.width(120.dp),
-                                label = { Text(stringResource(R.string.qty_label)) },
-                                singleLine = true
-                            )
-
-                            Spacer(Modifier.height(8.dp))
-
-                            Box(modifier = Modifier.fillMaxWidth()) {
-                                OutlinedCard(
-                                    onClick = { editCategoryExpanded = true },
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(56.dp)
-                                ) {
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .padding(horizontal = 12.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Icon(editCategory.icon, null, modifier = Modifier.size(20.dp))
-                                        Spacer(Modifier.width(8.dp))
-                                        Text(
-                                            text = stringResource(editCategory.resId),
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
-                                    }
-                                }
-                                DropdownMenu(
-                                    expanded = editCategoryExpanded,
-                                    onDismissRequest = { editCategoryExpanded = false }
-                                ) {
-                                    ShoppingCategory.entries.forEach { cat ->
-                                        DropdownMenuItem(
-                                            text = {
-                                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                                    Icon(cat.icon, null, modifier = Modifier.size(18.dp))
-                                                    Spacer(Modifier.width(12.dp))
-                                                    Text(stringResource(cat.resId))
-                                                }
-                                            },
-                                            onClick = {
-                                                editCategory = cat
-                                                editCategoryExpanded = false
-                                            }
-                                        )
-                                    }
-                                }
-                            }
-
-                            Spacer(Modifier.height(12.dp))
-
-                            Text(
-                                text = stringResource(R.string.unit_label),
-                                style = MaterialTheme.typography.labelMedium,
-                                color = Color.Gray
-                            )
-                            Spacer(Modifier.height(4.dp))
-                            UnitSelector(selectedUnit = editUnit, onUnitSelected = { editUnit = it })
-                        }
+                EditItemDialog(
+                    draft = editDraft,
+                    onDraftChange = { editDraft = it },
+                    onSave = {
+                        viewModel.updateItem(item, editDraft.name, editDraft.quantity, editDraft.unit, editDraft.category)
+                        itemToEdit = null
                     },
-                    confirmButton = {
-                        TextButton(
-                            enabled = editName.isNotBlank(),
-                            onClick = {
-                                viewModel.updateItem(item, editName, editQuantity, editUnit, editCategory)
-                                itemToEdit = null
-                            }
-                        ) { Text(stringResource(R.string.save_button)) }
-                    },
-                    dismissButton = {
-                        TextButton(onClick = { itemToEdit = null }) { Text(stringResource(R.string.cancel_button)) }
-                    }
+                    onDismiss = { itemToEdit = null }
                 )
             }
 
-            // Account details — read-only for now; editing details and account deletion are
-            // planned follow-ups, not built here since there's nothing yet to wire them to.
-            if (showAccountDialog) {
-                AlertDialog(
-                    onDismissRequest = { showAccountDialog = false },
-                    title = { Text(stringResource(R.string.account_details_title)) },
-                    text = {
-                        Column {
-                            val email = supabase.auth.currentUserOrNull()?.email.orEmpty()
-                            Text(stringResource(R.string.account_email_label, email))
-                            Spacer(modifier = Modifier.height(8.dp))
-                            // A user belongs to exactly one household at a time (household_members.user_id
-                            // is the primary key), so this shows a single household, not a list.
-                            Text(stringResource(R.string.account_household_label, household.name))
+            if (showDeleteAccountConfirm) {
+                DeleteAccountDialog(
+                    householdName = household.name,
+                    myRole = myRole,
+                    isDeletingAccount = isDeletingAccount,
+                    onConfirm = {
+                        scope.launch {
+                            isDeletingAccount = true
+                            val deleted = deleteAccount(context)
+                            isDeletingAccount = false
+                            // Leave the dialog open on failure so the error toast has context and
+                            // the user can just retry; on success MainActivity takes over anyway
+                            // once signOut() flips sessionStatus, but close it explicitly too so
+                            // there's no one-frame flash of the confirm dialog over LoginScreen.
+                            if (deleted) {
+                                showDeleteAccountConfirm = false
+                            }
                         }
                     },
-                    confirmButton = {
-                        TextButton(onClick = { showAccountDialog = false }) { Text(stringResource(R.string.close_button)) }
-                    }
+                    onDismiss = { showDeleteAccountConfirm = false }
                 )
             }
         }
+    }
+}
+
+private fun copyListToClipboard(
+    context: Context,
+    clipboard: Clipboard,
+    scope: CoroutineScope,
+    activeItems: Map<ShoppingCategory, List<ShoppingItem>>,
+    householdName: String
+) {
+    scope.launch {
+        val textToCopy = generateShareText(context, activeItems, householdName)
+        val copied = copyPlainTextToClipboard(clipboard, "Shopping List", textToCopy)
+        val messageRes = if (copied) R.string.copied_toast else R.string.copy_failed_toast
+        Toast.makeText(context, context.getString(messageRes), Toast.LENGTH_SHORT).show()
+    }
+}
+
+private fun shareList(context: Context, activeItems: Map<ShoppingCategory, List<ShoppingItem>>, householdName: String) {
+    val sendIntent = Intent().apply {
+        action = Intent.ACTION_SEND
+        putExtra(Intent.EXTRA_TEXT, generateShareText(context, activeItems, householdName))
+        type = "text/plain"
+    }
+    context.startActivity(Intent.createChooser(sendIntent, null))
+}
+
+private fun copyInviteCodeToClipboard(context: Context, clipboard: Clipboard, scope: CoroutineScope, inviteCode: String?) {
+    scope.launch {
+        val copied = copyPlainTextToClipboard(clipboard, "Household Invite Code", inviteCode.orEmpty())
+        val messageRes = if (copied) R.string.invite_code_copied_toast else R.string.copy_failed_toast
+        Toast.makeText(context, context.getString(messageRes), Toast.LENGTH_SHORT).show()
+    }
+}
+
+private suspend fun deleteAccount(context: Context): Boolean {
+    return try {
+        supabase.functions("delete-account")
+        supabase.auth.signOut()
+        Toast.makeText(context, context.getString(R.string.delete_account_success_toast), Toast.LENGTH_LONG).show()
+        true
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        Toast.makeText(context, context.getString(R.string.delete_account_error_toast), Toast.LENGTH_SHORT).show()
+        false
     }
 }
 
@@ -728,79 +315,4 @@ fun getFormattedTimestamp(context: Context): String {
     val locale = context.resources.configuration.locales[0]
     val formatter = DateTimeFormatter.ofPattern("MMM d, hh:mm a", locale)
     return current.format(formatter)
-}
-
-// --- HELPER COMPOSABLE ---
-
-@Composable
-fun SwipeToDeleteItem(
-    item: ShoppingItem,
-    onSwipeDelete: () -> Unit,
-    content: @Composable () -> Unit
-) {
-    val dismissState = rememberSwipeToDismissBoxState(
-        confirmValueChange = {
-            if (it != SwipeToDismissBoxValue.Settled) {
-                onSwipeDelete()
-                false // Don't dismiss immediately, let the dialog handle it
-            } else false
-        }
-    )
-
-    SwipeToDismissBox(
-        state = dismissState,
-        backgroundContent = {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Red.copy(alpha = 0.8f))
-                    .padding(horizontal = 20.dp),
-                contentAlignment = Alignment.CenterEnd
-            ) {
-                Icon(Icons.Default.Delete, contentDescription = null, tint = Color.White)
-            }
-        }
-    ) {
-        Surface(color = MaterialTheme.colorScheme.surface) { content() }
-    }
-}
-
-@Composable
-fun CategoryHeader(category: ShoppingCategory) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.secondaryContainer,
-        shadowElevation = 2.dp
-    ) {
-        Row(
-            modifier = Modifier.padding(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = category.icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(20.dp)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = stringResource(category.resId),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSecondaryContainer
-            )
-        }
-    }
-}
-
-@Composable
-fun UnitSelector(selectedUnit: MeasurementUnit, onUnitSelected: (MeasurementUnit) -> Unit) {
-    Row(modifier = Modifier.horizontalScroll(rememberScrollState())) {
-        MeasurementUnit.entries.forEach { unit ->
-            FilterChip(
-                selected = selectedUnit == unit,
-                onClick = { onUnitSelected(unit) },
-                label = { Text(stringResource(unit.resId)) }
-            )
-        }
-    }
 }
