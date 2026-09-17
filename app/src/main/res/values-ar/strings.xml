@@ -91,7 +91,7 @@
     <string name="copy_invite_code">نسخ رمز الدعوة</string>
     <string name="invite_code_copied_toast">تم نسخ رمز الدعوة!</string>
     <string name="account_plan_label">الخطة</string>
-    <string name="account_member_count_label">الأعضاء: %1$d / %2$d</string>
+    <string name="account_member_count_label">الأعضاء (%1$d/%2$d)</string>
     <string name="plan_free">مجانية</string>
     <string name="plan_paid">مدفوعة</string>
     <string name="delete_account_button">حذف الحساب</string>
