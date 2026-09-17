@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.PersonRemove
@@ -97,6 +98,15 @@ fun AccountScreen(
     var memberLimit by remember { mutableStateOf<Int?>(null) }
     var memberEmails by remember { mutableStateOf<List<HouseholdMemberEmail>>(emptyList()) }
     var memberToRemove by remember { mutableStateOf<HouseholdMemberEmail?>(null) }
+    var showPlanComparison by remember { mutableStateOf(false) }
+
+    if (showPlanComparison) {
+        PlanComparisonScreen(
+            currentPlan = household.plan,
+            onBack = { showPlanComparison = false }
+        )
+        return
+    }
 
     LaunchedEffect(household.id) {
         val householdId = household.id ?: return@LaunchedEffect
@@ -149,9 +159,13 @@ fun AccountScreen(
                 if (household.plan == "paid") R.string.plan_paid else R.string.plan_free
             )
             ListItem(
+                modifier = Modifier.clickable { showPlanComparison = true },
                 leadingContent = { Icon(Icons.Default.WorkspacePremium, contentDescription = null) },
                 headlineContent = { Text(stringResource(R.string.account_plan_label)) },
                 supportingContent = { Text(planLabel) },
+                trailingContent = {
+                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null)
+                },
                 colors = ListItemDefaults.colors(containerColor = Color.Transparent)
             )
 
