@@ -4,6 +4,7 @@ import android.app.LocaleManager
 import android.os.LocaleList
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.MoreVert
@@ -42,6 +43,7 @@ fun ShoppingListTopBar(
     onShareList: () -> Unit,
     onCopyInviteCode: () -> Unit,
     onShowAccountScreen: () -> Unit,
+    onShowArchivedItems: () -> Unit,
     onLogout: () -> Unit
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
@@ -73,6 +75,7 @@ fun ShoppingListTopBar(
                     onDismiss = { menuExpanded = false },
                     onCopyInviteCode = onCopyInviteCode,
                     onShowAccountScreen = onShowAccountScreen,
+                    onShowArchivedItems = onShowArchivedItems,
                     onLogout = onLogout
                 )
             }
@@ -86,6 +89,7 @@ private fun ShoppingListOverflowMenu(
     onDismiss: () -> Unit,
     onCopyInviteCode: () -> Unit,
     onShowAccountScreen: () -> Unit,
+    onShowArchivedItems: () -> Unit,
     onLogout: () -> Unit
 ) {
     val context = LocalContext.current
@@ -119,6 +123,14 @@ private fun ShoppingListOverflowMenu(
             leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
             onClick = {
                 onShowAccountScreen()
+                onDismiss()
+            }
+        )
+        DropdownMenuItem(
+            text = { Text(stringResource(R.string.archived_items_menu_item)) },
+            leadingIcon = { Icon(Icons.Default.Archive, contentDescription = null) },
+            onClick = {
+                onShowArchivedItems()
                 onDismiss()
             }
         )

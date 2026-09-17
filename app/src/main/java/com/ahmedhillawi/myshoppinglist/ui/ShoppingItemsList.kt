@@ -1,5 +1,6 @@
 package com.ahmedhillawi.myshoppinglist.ui
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Search
@@ -41,6 +43,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -69,6 +72,7 @@ fun ShoppingItemsList(
     filteredPurchasedItems: List<ShoppingItem>,
     purchasedSearchQuery: String,
     onPurchasedSearchQueryChange: (String) -> Unit,
+    isPaidPlan: Boolean,
     actions: ShoppingItemActions
 ) {
     LazyColumn(
@@ -79,7 +83,7 @@ fun ShoppingItemsList(
             stickyHeader { CategoryHeader(category) }
 
             items(items, key = { "active_${it.id}" }) { item ->
-                SwipeToDeleteRow(item = item, actions = actions)
+                SwipeActionsRow(item = item, actions = actions, isPaidPlan = isPaidPlan)
                 HorizontalDivider()
             }
         }
@@ -132,7 +136,7 @@ fun ShoppingItemsList(
             }
 
             items(filteredPurchasedItems, key = { "history_${it.id}" }) { item ->
-                SwipeToDeleteRow(item = item, actions = actions)
+                SwipeActionsRow(item = item, actions = actions, isPaidPlan = isPaidPlan)
                 HorizontalDivider()
             }
         }
@@ -142,6 +146,7 @@ fun ShoppingItemsList(
 // Bundles the six per-item callbacks ShoppingItemsList needs -- see its doc comment.
 data class ShoppingItemActions(
     val onSwipeToDelete: (ShoppingItem) -> Unit,
+    val onSwipeToArchive: (ShoppingItem) -> Unit,
     val onCheckedChange: (ShoppingItem) -> Unit,
     val onImportantToggle: (ShoppingItem) -> Unit,
     val onEdit: (ShoppingItem) -> Unit,
@@ -149,18 +154,25 @@ data class ShoppingItemActions(
     val onDecrementQuantity: (ShoppingItem) -> Unit
 )
 
+// Swipe EndToStart (the reading-direction reverse -- right-to-left in LTR) to delete, StartToEnd
+// to archive -- opposite-direction swipes for opposite-weight actions is a well-worn pattern
+// (Gmail/Mail-style) that needs no extra icon on an already icon-dense row. Archiving is
+// paid-plan-gated (see PLANS.md / the archive_items migration); a free household still gets the
+// gesture and its background color/icon while dragging, but releasing it shows an upgrade toast
+// and resets instead of archiving -- teaches the feature exists rather than silently disabling it.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SwipeToDeleteRow(item: ShoppingItem, actions: ShoppingItemActions) {
+private fun SwipeActionsRow(item: ShoppingItem, actions: ShoppingItemActions, isPaidPlan: Boolean) {
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     var rowWidthPx by remember { mutableFloatStateOf(0f) }
     // Assigned right after rememberSwipeToDismissBoxState below, before any gesture can reach the
     // confirmValueChange lambda that reads it -- captured by reference so the (necessarily
     // self-referential) closure below always sees the real state once it's actually invoked.
     var dismissStateRef: SwipeToDismissBoxState? = null
 
-    // Require a deliberate swipe so an errant drag while tapping the checkbox/star doesn't pop
-    // the delete dialog. positionalThreshold alone isn't enough for a fast flick, though:
+    // Require a deliberate swipe so an errant drag while tapping the checkbox/star doesn't
+    // trigger either action. positionalThreshold alone isn't enough for a fast flick, though:
     // Compose's built-in fling behavior hardcodes a 125dp/s velocity threshold with no public way
     // to raise it (AnchoredDraggableDefaults.flingBehavior always completes the dismiss once a
     // flick clears that speed, no matter how little distance it actually covered) --
@@ -182,20 +194,47 @@ private fun SwipeToDeleteRow(item: ShoppingItem, actions: ShoppingItemActions) {
     SwipeToDismissBox(
         state = dismissState,
         modifier = Modifier.onSizeChanged { rowWidthPx = it.width.toFloat() },
-        enableDismissFromStartToEnd = false,
         // onDismiss only fires once the swipe has settled (i.e. after the thumb is released) --
         // unlike confirmValueChange, which fires live mid-drag and would pop the dialog too early.
-        onDismiss = {
-            actions.onSwipeToDelete(item)
+        onDismiss = { direction ->
+            when (direction) {
+                SwipeToDismissBoxValue.EndToStart -> actions.onSwipeToDelete(item)
+                SwipeToDismissBoxValue.StartToEnd -> {
+                    if (isPaidPlan) {
+                        actions.onSwipeToArchive(item)
+                    } else {
+                        Toast.makeText(context, context.getString(R.string.archive_paid_only_toast), Toast.LENGTH_SHORT).show()
+                    }
+                }
+                SwipeToDismissBoxValue.Settled -> Unit
+            }
             scope.launch { dismissState.reset() }
         },
         backgroundContent = {
-            val color = if (dismissState.dismissDirection != SwipeToDismissBoxValue.Settled) Color.Red else Color.Transparent
+            val direction = dismissState.dismissDirection
+            val color = when (direction) {
+                SwipeToDismissBoxValue.StartToEnd -> MaterialTheme.colorScheme.tertiary
+                SwipeToDismissBoxValue.EndToStart -> Color.Red
+                SwipeToDismissBoxValue.Settled -> Color.Transparent
+            }
+            val alignment = if (direction == SwipeToDismissBoxValue.StartToEnd) Alignment.CenterStart else Alignment.CenterEnd
             Box(
                 modifier = Modifier.fillMaxSize().background(color).padding(horizontal = 20.dp),
-                contentAlignment = Alignment.CenterEnd
+                contentAlignment = alignment
             ) {
-                Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.delete_button), tint = Color.White)
+                when (direction) {
+                    SwipeToDismissBoxValue.StartToEnd -> Icon(
+                        Icons.Default.Archive,
+                        contentDescription = stringResource(R.string.archive_action_description),
+                        tint = Color.White
+                    )
+                    SwipeToDismissBoxValue.EndToStart -> Icon(
+                        Icons.Default.Delete,
+                        contentDescription = stringResource(R.string.delete_button),
+                        tint = Color.White
+                    )
+                    SwipeToDismissBoxValue.Settled -> Unit
+                }
             }
         }
     ) {

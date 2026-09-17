@@ -18,6 +18,7 @@ class FakeShoppingItemsApi : ShoppingItemsApi {
     var updateItemError: Throwable? = null
     var setPurchasedError: Throwable? = null
     var setImportantError: Throwable? = null
+    var setArchivedError: Throwable? = null
 
     var deleteCallCount = 0
         private set
@@ -66,6 +67,11 @@ class FakeShoppingItemsApi : ShoppingItemsApi {
     override suspend fun setImportant(id: Long, isImportant: Boolean) {
         setImportantError?.let { throw it }
         mutateItem(id) { it.copy(isImportant = isImportant) }
+    }
+
+    override suspend fun setArchived(id: Long, isArchived: Boolean, archivedAt: String?) {
+        setArchivedError?.let { throw it }
+        mutateItem(id) { it.copy(isArchived = isArchived, archivedAt = archivedAt) }
     }
 
     override suspend fun deleteItem(id: Long) {

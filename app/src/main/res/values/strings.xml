@@ -114,4 +114,11 @@
     <string name="decrease_quantity_description">Decrease quantity</string>
     <string name="increase_quantity_description">Increase quantity</string>
     <string name="empty_list_hint">Add your first item above to get started.</string>
+    <string name="archived_items_menu_item">Archived Items</string>
+    <string name="archived_items_title">Archived Items</string>
+    <string name="archive_action_description">Archive</string>
+    <string name="archive_paid_only_toast">Archiving is a Paid feature. Upgrade to use it.</string>
+    <string name="archive_paid_only_message">Archiving items is a Paid feature. Upgrade your household\'s plan to keep archiving items — anything already archived stays visible and can still be restored here.</string>
+    <string name="archived_empty_message">No archived items yet</string>
+    <string name="unarchive_button">Unarchive</string>
 </resources>

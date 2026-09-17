@@ -47,6 +47,7 @@ class ShoppingListViewModelTest {
     private fun TestScope.warmUp() {
         backgroundScope.launch { viewModel.activeItems.collect {} }
         backgroundScope.launch { viewModel.purchasedItems.collect {} }
+        backgroundScope.launch { viewModel.archivedItems.collect {} }
     }
 
     private fun item(
@@ -56,7 +57,9 @@ class ShoppingListViewModelTest {
         category: ShoppingCategory = ShoppingCategory.GENERAL,
         isPurchased: Boolean = false,
         purchasedAt: String? = null,
-        isImportant: Boolean = false
+        isImportant: Boolean = false,
+        isArchived: Boolean = false,
+        archivedAt: String? = null
     ) = ShoppingItem(
         id = id,
         name = name,
@@ -65,7 +68,9 @@ class ShoppingListViewModelTest {
         isPurchased = isPurchased,
         purchasedAt = purchasedAt,
         isImportant = isImportant,
-        householdId = HOUSEHOLD_ID
+        householdId = HOUSEHOLD_ID,
+        isArchived = isArchived,
+        archivedAt = archivedAt
     )
 
     @Test
@@ -275,6 +280,85 @@ class ShoppingListViewModelTest {
         dispatcher.scheduler.advanceUntilIdle()
 
         assertFalse(viewModel.activeItems.value.values.flatten().single().isImportant)
+    }
+
+    @Test
+    fun `activeItems and purchasedItems exclude archived items`() = runTest {
+        warmUp()
+        viewModel.start(HOUSEHOLD_ID)
+        api.seed(
+            HOUSEHOLD_ID,
+            listOf(
+                item(id = 1, name = "active-archived", isArchived = true),
+                item(id = 2, name = "active"),
+                item(id = 3, name = "purchased-archived", isPurchased = true, isArchived = true),
+                item(id = 4, name = "purchased", isPurchased = true)
+            )
+        )
+        dispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(listOf("active"), viewModel.activeItems.value.values.flatten().map { it.name })
+        assertEquals(listOf("purchased"), viewModel.purchasedItems.value.map { it.name })
+    }
+
+    @Test
+    fun `archivedItems contains only archived items sorted most recently archived first`() = runTest {
+        warmUp()
+        viewModel.start(HOUSEHOLD_ID)
+        api.seed(
+            HOUSEHOLD_ID,
+            listOf(
+                item(id = 1, name = "older", isArchived = true, archivedAt = "2026-01-01T00:00:00Z"),
+                item(id = 2, name = "newer", isArchived = true, archivedAt = "2026-02-01T00:00:00Z"),
+                item(id = 3, name = "not-archived")
+            )
+        )
+        dispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(listOf("newer", "older"), viewModel.archivedItems.value.map { it.name })
+    }
+
+    @Test
+    fun `archiveItem optimistically archives then reverts when the api call fails`() = runTest {
+        warmUp()
+        viewModel.start(HOUSEHOLD_ID)
+        api.seed(HOUSEHOLD_ID, listOf(item(id = 1, name = "eggs")))
+        dispatcher.scheduler.advanceUntilIdle()
+        api.setArchivedError = RuntimeException("boom")
+
+        val target = viewModel.activeItems.value.values.flatten().single()
+        viewModel.archiveItem(target)
+        dispatcher.scheduler.advanceUntilIdle()
+
+        val stillActive = viewModel.activeItems.value.values.flatten().singleOrNull { it.id == 1L }
+        assertTrue("expected the optimistic archive to be reverted", stillActive != null)
+        assertTrue(viewModel.archivedItems.value.isEmpty())
+    }
+
+    @Test
+    fun `unarchiveItem optimistically unarchives then reverts when the api call fails`() = runTest {
+        warmUp()
+        viewModel.start(HOUSEHOLD_ID)
+        api.seed(HOUSEHOLD_ID, listOf(item(id = 1, name = "eggs", isArchived = true, archivedAt = "2026-01-01T00:00:00Z")))
+        dispatcher.scheduler.advanceUntilIdle()
+        api.setArchivedError = RuntimeException("boom")
+
+        val target = viewModel.archivedItems.value.single()
+        viewModel.unarchiveItem(target)
+        dispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue("expected the optimistic unarchive to be reverted", viewModel.archivedItems.value.singleOrNull { it.id == 1L } != null)
+        assertTrue(viewModel.activeItems.value.isEmpty())
+    }
+
+    @Test
+    fun `archiveItem does nothing for an item with no id yet`() = runTest {
+        warmUp()
+        viewModel.start(HOUSEHOLD_ID)
+        viewModel.archiveItem(item(id = null, name = "eggs"))
+        dispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(viewModel.archivedItems.value.isEmpty())
     }
 
     @Test
