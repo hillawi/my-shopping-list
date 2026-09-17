@@ -121,4 +121,14 @@
     <string name="archive_paid_only_message">أرشفة العناصر ميزة للخطة المدفوعة. قم بترقية خطة منزلك لمواصلة الأرشفة — أي عنصر تمت أرشفته من قبل يبقى ظاهرًا ويمكن استعادته من هنا.</string>
     <string name="archived_empty_message">لا توجد عناصر مؤرشفة حتى الآن</string>
     <string name="unarchive_button">إلغاء الأرشفة</string>
+    <string name="plans_title">الخطط</string>
+    <string name="current_plan_badge">الخطة الحالية</string>
+    <string name="upgrade_coming_soon_button">قريبًا</string>
+    <string name="plan_feature_one_household">منزل واحد لكل حساب</string>
+    <string name="plan_feature_two_members">حتى عضوين لكل منزل</string>
+    <string name="plan_feature_realtime_list">قائمة تسوق مشتركة فورية</string>
+    <string name="plan_feature_30_day_history">سجل مشتريات لآخر 30 يومًا</string>
+    <string name="plan_feature_ten_members">حتى 10 أعضاء لكل منزل</string>
+    <string name="plan_feature_unlimited_history">سجل مشتريات غير محدود</string>
+    <string name="plan_feature_archive">أرشفة العناصر لإبقائها بعيدًا عن قائمتك وسجلك دون حذفها</string>
 </resources>
