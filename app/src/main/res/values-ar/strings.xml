@@ -123,6 +123,8 @@
     <string name="unarchive_button">إلغاء الأرشفة</string>
     <string name="plans_title">الخطط</string>
     <string name="current_plan_badge">الخطة الحالية</string>
+    <string name="plan_tier_silver">فضية</string>
+    <string name="plan_tier_gold">ذهبية</string>
     <string name="upgrade_coming_soon_button">قريبًا</string>
     <string name="plan_feature_one_household">منزل واحد لكل حساب</string>
     <string name="plan_feature_two_members">حتى عضوين لكل منزل</string>
