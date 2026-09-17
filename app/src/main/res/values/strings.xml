@@ -122,6 +122,8 @@
     <string name="archive_paid_only_toast">Archiving is a Paid feature. Upgrade from Account → Plan.</string>
     <string name="archive_paid_only_message">Archiving items is a Paid feature. Upgrade your household\'s plan to keep archiving items — anything already archived stays visible and can still be restored here.</string>
     <string name="archived_empty_message">No archived items yet</string>
+    <string name="item_archived_toast">\"%1$s\" archived</string>
+    <string name="item_restored_toast">\"%1$s\" restored</string>
     <string name="unarchive_button">Unarchive</string>
     <string name="plans_title">Plans</string>
     <string name="current_plan_badge">Current Plan</string>

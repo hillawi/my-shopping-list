@@ -111,7 +111,10 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel, household: Household, h
         ArchivedItemsScreen(
             isPaidPlan = isPaidPlan,
             archivedItems = archivedItems,
-            onUnarchive = { viewModel.unarchiveItem(it) },
+            onUnarchive = { item ->
+                viewModel.unarchiveItem(item)
+                Toast.makeText(context, context.getString(R.string.item_restored_toast, item.name), Toast.LENGTH_SHORT).show()
+            },
             onBack = { showArchivedScreen = false }
         )
         return
@@ -158,7 +161,10 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel, household: Household, h
                     isPaidPlan = isPaidPlan,
                     actions = ShoppingItemActions(
                         onSwipeToDelete = { itemToDelete = it },
-                        onSwipeToArchive = { viewModel.archiveItem(it) },
+                        onSwipeToArchive = { item ->
+                            viewModel.archiveItem(item)
+                            Toast.makeText(context, context.getString(R.string.item_archived_toast, item.name), Toast.LENGTH_SHORT).show()
+                        },
                         onCheckedChange = { viewModel.togglePurchased(it) },
                         onImportantToggle = { viewModel.toggleImportant(it) },
                         onEdit = { item ->
