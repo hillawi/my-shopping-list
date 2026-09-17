@@ -31,6 +31,7 @@ import com.ahmedhillawi.myshoppinglist.domain.ShoppingCategory
 import com.ahmedhillawi.myshoppinglist.domain.ShoppingItem
 import com.ahmedhillawi.myshoppinglist.ui.AccountScreen
 import com.ahmedhillawi.myshoppinglist.ui.AddItemForm
+import com.ahmedhillawi.myshoppinglist.ui.ArchivedItemsScreen
 import com.ahmedhillawi.myshoppinglist.ui.DeleteAccountDialog
 import com.ahmedhillawi.myshoppinglist.ui.DeleteItemDialog
 import com.ahmedhillawi.myshoppinglist.ui.EditItemDialog
@@ -59,7 +60,9 @@ import java.time.format.DateTimeFormatter
 fun ShoppingListScreen(viewModel: ShoppingListViewModel, household: Household, householdViewModel: HouseholdViewModel) {
     val activeItems by viewModel.activeItems.collectAsState()
     val purchasedItems by viewModel.purchasedItems.collectAsState()
+    val archivedItems by viewModel.archivedItems.collectAsState()
     val myRole by householdViewModel.myRole.collectAsState()
+    val isPaidPlan = household.plan == "paid"
 
     val context = LocalContext.current
     val clipboard = LocalClipboard.current
@@ -73,6 +76,7 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel, household: Household, h
     var editDraft by remember { mutableStateOf(ItemDraft("", "1", MeasurementUnit.PCS, ShoppingCategory.GENERAL)) }
 
     var showAccountScreen by remember { mutableStateOf(false) }
+    var showArchivedScreen by remember { mutableStateOf(false) }
     var showDeleteAccountConfirm by remember { mutableStateOf(false) }
     var isDeletingAccount by remember { mutableStateOf(false) }
 
@@ -103,6 +107,16 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel, household: Household, h
         return
     }
 
+    if (showArchivedScreen) {
+        ArchivedItemsScreen(
+            isPaidPlan = isPaidPlan,
+            archivedItems = archivedItems,
+            onUnarchive = { viewModel.unarchiveItem(it) },
+            onBack = { showArchivedScreen = false }
+        )
+        return
+    }
+
     Scaffold(
         topBar = {
             ShoppingListTopBar(
@@ -111,6 +125,7 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel, household: Household, h
                 onShareList = { shareList(context, activeItems, household.name) },
                 onCopyInviteCode = { copyInviteCodeToClipboard(context, clipboard, scope, household.inviteCode) },
                 onShowAccountScreen = { showAccountScreen = true },
+                onShowArchivedItems = { showArchivedScreen = true },
                 onLogout = { scope.launch { supabase.auth.signOut() } }
             )
         }
@@ -140,8 +155,10 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel, household: Household, h
                     filteredPurchasedItems = filteredPurchasedItems,
                     purchasedSearchQuery = purchasedSearchQuery,
                     onPurchasedSearchQueryChange = { purchasedSearchQuery = it },
+                    isPaidPlan = isPaidPlan,
                     actions = ShoppingItemActions(
                         onSwipeToDelete = { itemToDelete = it },
+                        onSwipeToArchive = { viewModel.archiveItem(it) },
                         onCheckedChange = { viewModel.togglePurchased(it) },
                         onImportantToggle = { viewModel.toggleImportant(it) },
                         onEdit = { item ->

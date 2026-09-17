@@ -21,6 +21,7 @@ interface ShoppingItemsApi {
     suspend fun updateItem(id: Long, name: String, quantity: String, unit: MeasurementUnit, category: String)
     suspend fun setPurchased(id: Long, isPurchased: Boolean, purchasedAt: String?)
     suspend fun setImportant(id: Long, isImportant: Boolean)
+    suspend fun setArchived(id: Long, isArchived: Boolean, archivedAt: String?)
     suspend fun deleteItem(id: Long)
 }
 
@@ -60,6 +61,13 @@ class SupabaseShoppingItemsApi(private val supabase: SupabaseClient) : ShoppingI
     override suspend fun setImportant(id: Long, isImportant: Boolean) {
         supabase.from("shopping_items").update({
             ShoppingItem::isImportant setTo isImportant
+        }) { filter { ShoppingItem::id eq id } }
+    }
+
+    override suspend fun setArchived(id: Long, isArchived: Boolean, archivedAt: String?) {
+        supabase.from("shopping_items").update({
+            ShoppingItem::isArchived setTo isArchived
+            ShoppingItem::archivedAt setTo archivedAt
         }) { filter { ShoppingItem::id eq id } }
     }
 

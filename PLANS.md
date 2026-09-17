@@ -16,3 +16,5 @@ Everything in Free, plus:
 
 - Up to 10 members per household
 - Unlimited purchase history
+- Archive items to keep them out of your list and history without deleting them (already-archived
+  items stay visible and can still be restored even if the household later downgrades)

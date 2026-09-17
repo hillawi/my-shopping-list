@@ -36,7 +36,7 @@ class ShoppingListViewModel @JvmOverloads constructor(
 
     // 1. Active Items (Grouped by Category)
     val activeItems = _allItems.map { list ->
-        list.filter { !it.isPurchased }
+        list.filter { !it.isPurchased && !it.isArchived }
             .distinctBy { it.id }
             .groupBy { ShoppingCategory.fromString(it.category) }
             .toSortedMap(compareBy { it.order })
@@ -44,8 +44,17 @@ class ShoppingListViewModel @JvmOverloads constructor(
 
     // 2. History/Pantry Items (Flat list, most recently purchased first)
     val purchasedItems = _allItems.map { list ->
-        list.filter { it.isPurchased }
+        list.filter { it.isPurchased && !it.isArchived }
             .sortedByDescending { it.purchasedAt ?: "" }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    // 3. Archived Items (Flat list, most recently archived first) -- see AccountScreen's Plan
+    // row/PLANS.md: archiving is a paid-plan feature, but any already-archived item stays visible
+    // and unarchivable regardless of the household's current plan (see the archive_items
+    // migration's doc comment for why).
+    val archivedItems = _allItems.map { list ->
+        list.filter { it.isArchived }
+            .sortedByDescending { it.archivedAt ?: "" }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     // Called once the caller's household is known (see MainActivity) — the list can't be
@@ -191,6 +200,43 @@ class ShoppingListViewModel @JvmOverloads constructor(
             } catch (e: Exception) {
                 Log.w("ShoppingListViewModel", "Failed to toggle important for item $id", e)
                 updateItemLocally(id) { it.copy(isImportant = item.isImportant) }
+            }
+        }
+    }
+
+    // Archiving itself is gated to the paid plan server-side (see the archive_items migration) --
+    // the UI is expected to check the household's plan before ever calling this, but the api call
+    // failing outright (rather than silently no-opping) if that check is ever bypassed is exactly
+    // what the revert-on-failure below already handles.
+    fun archiveItem(item: ShoppingItem) {
+        val id = item.id ?: return
+        val archivedAt = Instant.now().toString()
+        updateItemLocally(id) { it.copy(isArchived = true, archivedAt = archivedAt) }
+        viewModelScope.launch {
+            try {
+                api.setArchived(id, isArchived = true, archivedAt = archivedAt)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w("ShoppingListViewModel", "Failed to archive item $id", e)
+                updateItemLocally(id) { it.copy(isArchived = item.isArchived, archivedAt = item.archivedAt) }
+            }
+        }
+    }
+
+    // Unlike archiveItem, allowed regardless of the household's current plan -- see the
+    // archive_items migration's doc comment.
+    fun unarchiveItem(item: ShoppingItem) {
+        val id = item.id ?: return
+        updateItemLocally(id) { it.copy(isArchived = false, archivedAt = null) }
+        viewModelScope.launch {
+            try {
+                api.setArchived(id, isArchived = false, archivedAt = null)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w("ShoppingListViewModel", "Failed to unarchive item $id", e)
+                updateItemLocally(id) { it.copy(isArchived = item.isArchived, archivedAt = item.archivedAt) }
             }
         }
     }
