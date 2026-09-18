@@ -10,8 +10,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Remove
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.outlined.Star
+import androidx.compose.material.icons.filled.PriorityHigh
+import androidx.compose.material.icons.outlined.PriorityHigh
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -126,7 +126,10 @@ private fun PurchasedCheckbox(
 }
 
 // Extracted out of ShoppingListItem's trailingContent lambda to keep that composable's own
-// cognitive complexity down.
+// cognitive complexity down. A priority/exclamation icon rather than a star -- a star reads as
+// "favorite" almost everywhere else, which doesn't map to this toggle's actual meaning ("must
+// buy"); an exclamation mark communicates urgency directly instead of relying on a borrowed
+// convention. See ShoppingListViewModel.activeItems for the matching sort-to-top behavior.
 @Composable
 private fun ImportantToggleButton(isImportant: Boolean, haptic: HapticFeedback, onToggle: () -> Unit) {
     IconButton(
@@ -136,7 +139,7 @@ private fun ImportantToggleButton(isImportant: Boolean, haptic: HapticFeedback, 
         }
     ) {
         Icon(
-            imageVector = if (isImportant) Icons.Filled.Star else Icons.Outlined.Star,
+            imageVector = if (isImportant) Icons.Filled.PriorityHigh else Icons.Outlined.PriorityHigh,
             contentDescription = stringResource(R.string.important_description),
             tint = if (isImportant) Color(0xFFFF9800) else Color.Gray.copy(alpha = 0.5f)
         )

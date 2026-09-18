@@ -94,6 +94,24 @@ class ShoppingListViewModelTest {
     }
 
     @Test
+    fun `activeItems pins important items to the top of their category, preserving relative order otherwise`() = runTest {
+        warmUp()
+        viewModel.start(HOUSEHOLD_ID)
+        api.seed(
+            HOUSEHOLD_ID,
+            listOf(
+                item(id = 1, name = "bread", category = ShoppingCategory.BAKERY),
+                item(id = 2, name = "bagel", category = ShoppingCategory.BAKERY, isImportant = true),
+                item(id = 3, name = "croissant", category = ShoppingCategory.BAKERY)
+            )
+        )
+        dispatcher.scheduler.advanceUntilIdle()
+
+        val bakery = viewModel.activeItems.value.getValue(ShoppingCategory.BAKERY)
+        assertEquals(listOf("bagel", "bread", "croissant"), bakery.map { it.name })
+    }
+
+    @Test
     fun `purchasedItems contains only purchased items sorted most recently purchased first`() = runTest {
         warmUp()
         viewModel.start(HOUSEHOLD_ID)

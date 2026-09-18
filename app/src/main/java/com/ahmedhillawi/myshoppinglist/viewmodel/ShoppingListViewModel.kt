@@ -34,11 +34,14 @@ class ShoppingListViewModel @JvmOverloads constructor(
     private var householdId: String? = null
     private var itemsJob: Job? = null
 
-    // 1. Active Items (Grouped by Category)
+    // 1. Active Items (Grouped by Category, important items pinned to the top of each group --
+    // sortedByDescending is stable, so ties (same isImportant value) keep their existing relative
+    // order rather than being reshuffled).
     val activeItems = _allItems.map { list ->
         list.filter { !it.isPurchased && !it.isArchived }
             .distinctBy { it.id }
             .groupBy { ShoppingCategory.fromString(it.category) }
+            .mapValues { (_, items) -> items.sortedByDescending { it.isImportant } }
             .toSortedMap(compareBy { it.order })
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
