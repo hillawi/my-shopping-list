@@ -94,6 +94,24 @@ class ShoppingListViewModelTest {
     }
 
     @Test
+    fun `activeItems pins important items to the top of their category, preserving relative order otherwise`() = runTest {
+        warmUp()
+        viewModel.start(HOUSEHOLD_ID)
+        api.seed(
+            HOUSEHOLD_ID,
+            listOf(
+                item(id = 1, name = "bread", category = ShoppingCategory.BAKERY),
+                item(id = 2, name = "bagel", category = ShoppingCategory.BAKERY, isImportant = true),
+                item(id = 3, name = "croissant", category = ShoppingCategory.BAKERY)
+            )
+        )
+        dispatcher.scheduler.advanceUntilIdle()
+
+        val bakery = viewModel.activeItems.value.getValue(ShoppingCategory.BAKERY)
+        assertEquals(listOf("bagel", "bread", "croissant"), bakery.map { it.name })
+    }
+
+    @Test
     fun `purchasedItems contains only purchased items sorted most recently purchased first`() = runTest {
         warmUp()
         viewModel.start(HOUSEHOLD_ID)
@@ -169,6 +187,20 @@ class ShoppingListViewModelTest {
 
         val stillActive = viewModel.activeItems.value.values.flatten().singleOrNull { it.id == 1L }
         assertTrue("expected the optimistic update to be reverted back to unpurchased", stillActive != null)
+    }
+
+    @Test
+    fun `togglePurchased clears the important flag when marking an item purchased`() = runTest {
+        warmUp()
+        viewModel.start(HOUSEHOLD_ID)
+        api.seed(HOUSEHOLD_ID, listOf(item(id = 1, name = "eggs", isImportant = true)))
+        dispatcher.scheduler.advanceUntilIdle()
+
+        val target = viewModel.activeItems.value.values.flatten().single()
+        viewModel.togglePurchased(target)
+        dispatcher.scheduler.advanceUntilIdle()
+
+        assertFalse(viewModel.purchasedItems.value.single().isImportant)
     }
 
     @Test

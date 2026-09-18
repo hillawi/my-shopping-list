@@ -34,11 +34,14 @@ class ShoppingListViewModel @JvmOverloads constructor(
     private var householdId: String? = null
     private var itemsJob: Job? = null
 
-    // 1. Active Items (Grouped by Category)
+    // 1. Active Items (Grouped by Category, important items pinned to the top of each group --
+    // sortedByDescending is stable, so ties (same isImportant value) keep their existing relative
+    // order rather than being reshuffled).
     val activeItems = _allItems.map { list ->
         list.filter { !it.isPurchased && !it.isArchived }
             .distinctBy { it.id }
             .groupBy { ShoppingCategory.fromString(it.category) }
+            .mapValues { (_, items) -> items.sortedByDescending { it.isImportant } }
             .toSortedMap(compareBy { it.order })
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
@@ -117,15 +120,27 @@ class ShoppingListViewModel @JvmOverloads constructor(
         val id = item.id ?: return
         val newValue = !item.isPurchased
         val newPurchasedAt = if (newValue) Instant.now().toString() else null
-        updateItemLocally(id) { it.copy(isPurchased = newValue, purchasedAt = newPurchasedAt) }
+        // Checking an item off means it's no longer something to look out for -- clear any "must
+        // buy" flag so it doesn't carry over if the same item is bought again later.
+        val clearImportant = newValue && item.isImportant
+        updateItemLocally(id) {
+            it.copy(
+                isPurchased = newValue,
+                purchasedAt = newPurchasedAt,
+                isImportant = if (clearImportant) false else it.isImportant
+            )
+        }
         viewModelScope.launch {
             try {
                 api.setPurchased(id, newValue, newPurchasedAt)
+                if (clearImportant) api.setImportant(id, false)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 Log.w("ShoppingListViewModel", "Failed to toggle purchased for item $id", e)
-                updateItemLocally(id) { it.copy(isPurchased = item.isPurchased, purchasedAt = item.purchasedAt) }
+                updateItemLocally(id) {
+                    it.copy(isPurchased = item.isPurchased, purchasedAt = item.purchasedAt, isImportant = item.isImportant)
+                }
             }
         }
     }
