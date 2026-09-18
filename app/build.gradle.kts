@@ -29,7 +29,7 @@ android {
 
     defaultConfig {
         applicationId = "com.ahmedhillawi.myshoppinglist"
-        minSdk = 34
+        minSdk = 33
         targetSdk = 36
         versionCode = 7
         versionName = "2.0.0"
