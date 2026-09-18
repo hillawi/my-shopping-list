@@ -120,15 +120,27 @@ class ShoppingListViewModel @JvmOverloads constructor(
         val id = item.id ?: return
         val newValue = !item.isPurchased
         val newPurchasedAt = if (newValue) Instant.now().toString() else null
-        updateItemLocally(id) { it.copy(isPurchased = newValue, purchasedAt = newPurchasedAt) }
+        // Checking an item off means it's no longer something to look out for -- clear any "must
+        // buy" flag so it doesn't carry over if the same item is bought again later.
+        val clearImportant = newValue && item.isImportant
+        updateItemLocally(id) {
+            it.copy(
+                isPurchased = newValue,
+                purchasedAt = newPurchasedAt,
+                isImportant = if (clearImportant) false else it.isImportant
+            )
+        }
         viewModelScope.launch {
             try {
                 api.setPurchased(id, newValue, newPurchasedAt)
+                if (clearImportant) api.setImportant(id, false)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 Log.w("ShoppingListViewModel", "Failed to toggle purchased for item $id", e)
-                updateItemLocally(id) { it.copy(isPurchased = item.isPurchased, purchasedAt = item.purchasedAt) }
+                updateItemLocally(id) {
+                    it.copy(isPurchased = item.isPurchased, purchasedAt = item.purchasedAt, isImportant = item.isImportant)
+                }
             }
         }
     }

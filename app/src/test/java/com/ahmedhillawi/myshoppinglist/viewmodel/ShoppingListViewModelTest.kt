@@ -190,6 +190,20 @@ class ShoppingListViewModelTest {
     }
 
     @Test
+    fun `togglePurchased clears the important flag when marking an item purchased`() = runTest {
+        warmUp()
+        viewModel.start(HOUSEHOLD_ID)
+        api.seed(HOUSEHOLD_ID, listOf(item(id = 1, name = "eggs", isImportant = true)))
+        dispatcher.scheduler.advanceUntilIdle()
+
+        val target = viewModel.activeItems.value.values.flatten().single()
+        viewModel.togglePurchased(target)
+        dispatcher.scheduler.advanceUntilIdle()
+
+        assertFalse(viewModel.purchasedItems.value.single().isImportant)
+    }
+
+    @Test
     fun `togglePurchased does nothing for an item with no id yet`() = runTest {
         warmUp()
         viewModel.start(HOUSEHOLD_ID)
