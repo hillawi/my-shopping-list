@@ -31,7 +31,7 @@ A shopping list app for Android, built with Kotlin and Jetpack Compose. Lists sy
 1. Clone the repository.
 2. Open the project in Android Studio and let Gradle sync.
 3. Supabase connection details currently live in `SupabaseClient.kt`. If you're running against your own Supabase project, update the `supabaseUrl` and `supabaseKey` there.
-4. Run the `app` configuration on an emulator or device (minSdk 34+).
+4. Run the `app` configuration on an emulator or device (minSdk 33+).
 
 ## Project Structure
 
@@ -75,7 +75,7 @@ ever changes: the manifest's intent-filter, this Auth config, and Supabase's Sit
 
 ## Status
 
-Version 2.0.0 — running in production.
+Version 2.1.0 — running in production.
 
 ## Contributing
 
