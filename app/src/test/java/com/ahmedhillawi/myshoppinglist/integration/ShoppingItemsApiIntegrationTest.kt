@@ -7,6 +7,8 @@ import com.ahmedhillawi.myshoppinglist.domain.ShoppingCategory
 import com.ahmedhillawi.myshoppinglist.domain.ShoppingItem
 import io.github.jan.supabase.postgrest.from
 import java.time.OffsetDateTime
+import java.time.ZoneOffset
+import java.time.temporal.ChronoUnit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -81,12 +83,15 @@ class ShoppingItemsApiIntegrationTest {
     fun `setPurchased marks an item purchased with a timestamp and can unmark it`() = runTest {
         val (itemsApi, householdId, id) = newHouseholdWithItem()
 
-        itemsApi.setPurchased(id, isPurchased = true, purchasedAt = "2026-09-14T00:00:00Z")
+        // Relative to now, not a fixed date: a free household's RLS hides (and rejects updates
+        // producing) purchased items older than 30 days -- see purchase_history_retention.sql.
+        val purchasedAt = OffsetDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.SECONDS)
+        itemsApi.setPurchased(id, isPurchased = true, purchasedAt = purchasedAt.toString())
         val purchased = itemsApi.observeItems(householdId).first().first { it.id == id }
         assertTrue(purchased.isPurchased)
         // Postgres round-trips this as an equivalent offset ("+00:00" rather than "Z") -- compare
         // parsed instants, not the raw string.
-        assertEquals(OffsetDateTime.parse("2026-09-14T00:00:00Z"), OffsetDateTime.parse(purchased.purchasedAt))
+        assertEquals(purchasedAt, OffsetDateTime.parse(purchased.purchasedAt))
 
         itemsApi.setPurchased(id, isPurchased = false, purchasedAt = null)
         val unpurchased = itemsApi.observeItems(householdId).first().first { it.id == id }

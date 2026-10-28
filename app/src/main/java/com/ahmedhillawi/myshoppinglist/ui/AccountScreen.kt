@@ -48,6 +48,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.ahmedhillawi.myshoppinglist.R
@@ -93,6 +94,7 @@ fun AccountScreen(
 
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val resources = LocalResources.current
     val isOwner = myRole == "owner"
 
     var memberCount by remember { mutableStateOf<Int?>(null) }
@@ -229,7 +231,7 @@ fun AccountScreen(
                         memberCount = memberCount?.let { it - 1 }
                         Toast.makeText(
                             context,
-                            context.getString(R.string.member_removed_toast, member.email),
+                            resources.getString(R.string.member_removed_toast, member.email),
                             Toast.LENGTH_SHORT
                         ).show()
                     } catch (e: CancellationException) {
@@ -238,7 +240,7 @@ fun AccountScreen(
                         Log.w("AccountScreen", "Failed to remove member", e)
                         Toast.makeText(
                             context,
-                            context.getString(R.string.member_removed_error_toast),
+                            resources.getString(R.string.member_removed_error_toast),
                             Toast.LENGTH_SHORT
                         ).show()
                     }
