@@ -44,6 +44,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -165,6 +166,7 @@ data class ShoppingItemActions(
 private fun SwipeActionsRow(item: ShoppingItem, actions: ShoppingItemActions, isPaidPlan: Boolean) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val resources = LocalResources.current
     var rowWidthPx by remember { mutableFloatStateOf(0f) }
     // Assigned right after rememberSwipeToDismissBoxState below, before any gesture can reach the
     // confirmValueChange lambda that reads it -- captured by reference so the (necessarily
@@ -203,7 +205,7 @@ private fun SwipeActionsRow(item: ShoppingItem, actions: ShoppingItemActions, is
                     if (isPaidPlan) {
                         actions.onSwipeToArchive(item)
                     } else {
-                        Toast.makeText(context, context.getString(R.string.archive_paid_only_toast), Toast.LENGTH_LONG).show()
+                        Toast.makeText(context, resources.getString(R.string.archive_paid_only_toast), Toast.LENGTH_LONG).show()
                     }
                 }
                 SwipeToDismissBoxValue.Settled -> Unit
