@@ -24,6 +24,7 @@ import androidx.compose.ui.platform.Clipboard
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.unit.dp
 import com.ahmedhillawi.myshoppinglist.domain.Household
 import com.ahmedhillawi.myshoppinglist.domain.MeasurementUnit
@@ -65,6 +66,7 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel, household: Household, h
     val isPaidPlan = household.plan == "paid"
 
     val context = LocalContext.current
+    val resources = LocalResources.current
     val clipboard = LocalClipboard.current
     val scope = rememberCoroutineScope()
 
@@ -113,7 +115,7 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel, household: Household, h
             archivedItems = archivedItems,
             onUnarchive = { item ->
                 viewModel.unarchiveItem(item)
-                Toast.makeText(context, context.getString(R.string.item_restored_toast, item.name), Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, resources.getString(R.string.item_restored_toast, item.name), Toast.LENGTH_SHORT).show()
             },
             onBack = { showArchivedScreen = false }
         )
@@ -163,7 +165,7 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel, household: Household, h
                         onSwipeToDelete = { itemToDelete = it },
                         onSwipeToArchive = { item ->
                             viewModel.archiveItem(item)
-                            Toast.makeText(context, context.getString(R.string.item_archived_toast, item.name), Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, resources.getString(R.string.item_archived_toast, item.name), Toast.LENGTH_SHORT).show()
                         },
                         onCheckedChange = { viewModel.togglePurchased(it) },
                         onImportantToggle = { viewModel.toggleImportant(it) },
